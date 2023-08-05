@@ -1,0 +1,19 @@
+{
+  "name": "token-server",
+  "version": "0.0.1",
+  "description": "Token-protected REST route server",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "nodemon index.js"
+  },
+  "author": "bprcode@gmail.com",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@bprcode/handy": "^0.3.3",
+    "express": "^4.18.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}
