@@ -1,13 +1,29 @@
 #!/usr/bin/env node
-const express = require('express')
 require('@bprcode/handy')
+require('dotenv').config({ path: '../.secret/token.env' })
+const express = require('express')
 const app = express()
+require('express-async-errors')
 const port = 3000
+const { pool, getFoo } = require('./database.js')
+
+log({ FOO: process.env.FOO }, { BAR: process.env.BAR })
 
 app
   .get('/', (req, res) => {
     res.send('Welcome to the server')
     log('Served: ', req.originalUrl, blue)
+  })
+  .get('/foo', async (req, res)=> {
+    log('Acquiring Foo.......')
+    const foo = await getFoo()
+    res.json(foo)
+  })
+  .get('/slow', async (req, res) => {
+    log('🐢 Making request s l o w l y ...')
+    await new Promise(k => setTimeout(k, 10000))
+    log('⏰ Slow request done!')
+    res.send('That sure was a slow request.')
   })
   .get('*', (req, res) => {
     res.status(404).send('❓ Not Found')
@@ -24,4 +40,10 @@ const server = app.listen(port, () => {
   log(...time, ...listening, ' ' + moo())
 })
 
-log('End of index.js reached.')
+process.on('exit', () => {
+  log('exit handler triggered~', pink)
+})
+process.on('SIGINT', () => {
+  log('SIGINT handler triggered~', pink)
+  process.exit(2)
+})
