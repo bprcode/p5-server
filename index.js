@@ -3,12 +3,10 @@ require('dotenv').config({ path: '../.secret/token.env' })
 const express = require('express')
 const app = express()
 require('express-async-errors')
-const bcrypt = require('bcrypt')
-const jwt = require('jsonwebtoken')
 const port = 3000
-const { pool, getFoo, createLogin } = require('./database.js')
+const { createLogin } = require('./database.js')
 require('@bprcode/handy')
-const { protect, requestToken, generateToken } = require('./authorization.js')
+const { protect, requestToken, signToken } = require('./authorization.js')
 
 app
   .use(express.json())
@@ -20,24 +18,24 @@ app
   })
 
   .get('/me', protect, async (req, res) => {
-    res.send('🙋‍♂️ Hello ' + req.bearer.email)
+    res.send('🙋‍♂️ Hello ' + req.bearer.name + ` (${req.bearer.email})`)
   })
-  
+
   // Create a new user
   .post('/register', async (req, res) => {
     const candidate = req.body
     log('Attempting to create ', blue, candidate)
-    if (await createLogin(candidate)) {
-      const token = generateToken(candidate.email)
-      res.json(token)
-    }
+
+    const claims = await createLogin(candidate)
+    const token = signToken(claims)
+    res.json(token)
   })
 
   // Retrieve a bearer token
   .post('/login', async (req, res) => {
-    const user = req.body
-    log('Attempting login as ', user.email)
-    const outcome = await requestToken(user.email, user.password)
+    const { email, password } = req.body
+    log('Attempting login as ', email)
+    const outcome = await requestToken(email, password)
     if (outcome) {
       return res.json(outcome)
     }
@@ -57,6 +55,8 @@ app
 
 const server = app.listen(port, () => {
   const time = [new Date().toLocaleTimeString(), pink]
-  const listening = [' App listening on port ', server.address().port, yellow]
+  const listening = [
+    ' App listening on: http://localhost:' + server.address().port,
+  ]
   log(...time, ...listening, ' ' + moo())
 })

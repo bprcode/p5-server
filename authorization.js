@@ -1,6 +1,6 @@
 require('@bprcode/handy')
 const jwt = require('jsonwebtoken')
-const { testCredentials } = require('./database')
+const { matchCredentials } = require('./database')
 
 const protect = async (req, res, next) => {
   try {
@@ -26,15 +26,23 @@ const protect = async (req, res, next) => {
 // Return a bearer token if the password matches the stored hash
 const requestToken = async (email, password) => {
   log('requesting token for ', email)
-  if (await testCredentials(email, password)) {
-    return generateToken(email)
+  const match = await matchCredentials(email, password)
+
+  if (match) {
+    return signToken(match)
   }
 
   return false
 }
 
-const generateToken = email => {
-  const token = jwt.sign({ email }, process.env.JWT_SECRET, {
+const signToken = claims => {
+  const sanitized = {
+    email: claims.email,
+    name: claims.name,
+    uid: claims.uid,
+  }
+
+  const token = jwt.sign(sanitized, process.env.JWT_SECRET, {
     algorithm: 'HS512',
     expiresIn: '120s',
   })
@@ -42,4 +50,4 @@ const generateToken = email => {
   return token
 }
 
-module.exports = { protect, requestToken, generateToken }
+module.exports = { protect, requestToken, signToken }

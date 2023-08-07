@@ -3,14 +3,15 @@ const bcrypt = require('bcrypt')
 
 const pool = new Pool()
 
-async function getFoo() {
-  const result = await pool.query('SELECT * FROM foo')
-  return result.rows
-}
-
-async function testCredentials(email, password) {
+// If given valid credentials, return matching user record, null otherwise.
+async function matchCredentials(email, password) {
   const record = await getUser(email)
-  return bcrypt.compare(password, record.hash)
+
+  if (await bcrypt.compare(password, record.hash)) {
+    return record
+  }
+
+  return null
 }
 
 async function createLogin(candidate) {
@@ -32,12 +33,12 @@ async function createLogin(candidate) {
   )
 
   await pool.query(
-    'INSERT INTO logins (email, display_name, hash) VALUES ' +
+    'INSERT INTO logins (email, name, hash) VALUES ' +
       '($1::text, $2::text, $3::text)',
     [candidate.email, candidate.name, hash]
   )
 
-  return candidate.email
+  return { email: candidate.email, name: candidate.name, hash }
 }
 
 async function getUser(email) {
@@ -51,4 +52,4 @@ async function getUser(email) {
   return result.rows[0]
 }
 
-module.exports = { pool, getFoo, createLogin, getUser, testCredentials }
+module.exports = { createLogin, getUser, matchCredentials }
