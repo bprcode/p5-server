@@ -19,37 +19,10 @@ app
     log('Served: ', req.originalUrl, blue)
   })
 
-  .get('/foo', protect, async (req, res) => {
-    log('Acquiring Foo.......')
-    const foo = await getFoo()
-    res.json(foo)
-  })
-
   .get('/me', protect, async (req, res) => {
-    res.send('🙋‍♂️ Hello ' + req._email)
+    res.send('🙋‍♂️ Hello ' + req.bearer.email)
   })
-
-  .get('/jwt', (req, res) => {
-    const token = jwt.sign(
-      { abc: 'alphabet', num: 123.456 },
-      process.env.JWT_SECRET,
-      { algorithm: 'HS512', expiresIn: '10s' }
-    )
-    res.json(token)
-  })
-
-  .get('/sample', (req, res) => {
-    res.json(generateToken('sample e-mail'))
-  })
-
-  .post('/jwt', (req, res) => {
-    log('~Got a post to /jwt:')
-    log(req.body)
-    res.send(
-      jwt.verify(req.body, process.env.JWT_SECRET, { algorithms: ['HS512'] })
-    )
-  })
-
+  
   // Create a new user
   .post('/register', async (req, res) => {
     const candidate = req.body

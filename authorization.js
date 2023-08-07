@@ -10,8 +10,8 @@ const protect = async (req, res, next) => {
       algorithms: ['HS512'],
     })
 
-    log('Using value from payload: ', payload)
-    req._email = payload.email
+    log('Using values from payload: ', payload)
+    req.bearer = payload
 
     log('🗝️ Good token. Allowed.')
     next()
@@ -36,7 +36,7 @@ const requestToken = async (email, password) => {
 const generateToken = email => {
   const token = jwt.sign({ email }, process.env.JWT_SECRET, {
     algorithm: 'HS512',
-    expiresIn: '3000s',
+    expiresIn: '120s',
   })
 
   return token
