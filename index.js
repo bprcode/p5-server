@@ -8,7 +8,19 @@ const { createLogin } = require('./database.js')
 require('@bprcode/handy')
 const { protect, requestToken, signToken } = require('./authorization.js')
 
+function acao(headers) {
+  return (req, res, next) => {
+    res.set({
+      'Access-Control-Allow-Origin': process.env.ACAO,
+      'Access-Control-Max-Age': '3000',
+      ...headers,
+    })
+    next()
+  }
+}
+
 app
+  .disable('x-powered-by')
   .use(express.json())
   .use(express.text())
 
@@ -31,16 +43,47 @@ app
     res.json(token)
   })
 
+  .options(
+    '/login',
+    acao({ 'Access-Control-Allow-Headers': 'Content-Type' }),
+    async (req, res) => {
+      res.send()
+    }
+  )
+
   // Retrieve a bearer token
-  .post('/login', async (req, res) => {
+  .post('/login', acao(), async (req, res) => {
     const { email, password } = req.body
+    log('Received login post request with body:', pink)
+    console.log(req.body)
     log('Attempting login as ', email)
     const outcome = await requestToken(email, password)
     if (outcome) {
-      return res.json(outcome)
+      return res.json({ token: outcome})
     }
 
     res.status(401).send('🛑 Invalid credentials.')
+  })
+
+  .options('/mock', acao(), (req, res) => {
+    log('Preflight request received: ', yellow, req.originalUrl)
+    res.set({
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    })
+    res.send()
+  })
+
+  .post('/mock', acao(), protect, (req, res) => {
+    log('/mock ', yellow, ' obeying post from bearer=', req.bearer.name)
+
+    res.send('👍 nice post man')
+  })
+
+  .get('/ping', acao(), (req, res) => {
+    log('Got ping request with headers:', blue)
+    log(req.headers)
+
+    res.send(moo() + ' pong!')
   })
 
   .get('*', (req, res) => {

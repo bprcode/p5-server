@@ -4,6 +4,7 @@ const { matchCredentials } = require('./database')
 
 const protect = async (req, res, next) => {
   try {
+    log('protecting ', req.method, ' to ', req.originalUrl)
     const bearer = req.headers.authorization.split(/bearer /i)[1]
 
     const payload = jwt.verify(bearer, process.env.JWT_SECRET, {
