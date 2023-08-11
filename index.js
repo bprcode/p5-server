@@ -4,7 +4,14 @@ const express = require('express')
 const app = express()
 require('express-async-errors')
 const port = 3000
-const { createLogin, addMockUser } = require('./database.js')
+const {
+  createLogin,
+  addMockUser,
+  getUser,
+  getNote,
+  addNote,
+  listNotes,
+} = require('./database.js')
 require('@bprcode/handy')
 const { protect, requestToken, signToken } = require('./authorization.js')
 
@@ -29,9 +36,48 @@ app
     log('Served: ', req.originalUrl, blue)
   })
 
-  .get('/mocku', async (req, res) => {
+  .post('/mockuser', async (req, res) => {
     await addMockUser()
-    res.send('ok')
+    res.send('ok ' + moo())
+  })
+
+  .post('/mocknote', async (req, res) => {
+    await addNote(
+      '164dccb6-68c9-42ce-838b-9992b0fd2842',
+      'Lorem ipsum dolor sit amet, consectetur adipiscing elit. ' +
+        'Maecenas sed ipsum posuere, congue urna ut, iaculis magna. ' +
+        'In hac habitasse platea dictumst. Sed ac ligula in velit ' +
+        'commodo ullamcorper.'
+    )
+    res.send('thanks for the thoughtful note ' + moo())
+  })
+
+  .get('/users*', (req, res, next) => {
+    log('(users middleware -- protect this route later)')
+    next()
+  })
+
+  .get('/users/:id', (req, res) => {
+    getUser(req.params.id)
+      .then(user => res.json(user))
+      .catch(error => res.json({ error: error.message }))
+  })
+
+  .get('/users/:id/notebook', async (req, res) => {
+    listNotes(req.params.id)
+      .then(noteList => res.json(noteList))
+      .catch(error => res.json({ error: error.message }))
+  })
+
+  .get('/notes*', (req, res, next) => {
+    log('(notes middleware -- protect this route later)')
+    next()
+  })
+
+  .get('/notes/:id', (req, res) => {
+    getNote(req.params.id)
+      .then(user => res.json(user))
+      .catch(error => res.json({ error: error.message }))
   })
 
   .get('/me', protect, async (req, res) => {
@@ -59,12 +105,7 @@ app
   // Retrieve a bearer token
   .post('/login', acao(), async (req, res) => {
     const { email, password } = req.body
-    log(
-      new Date().toLocaleTimeString(),
-      ' Received login post request with body:',
-      pink
-    )
-    console.log(req.body)
+    log(new Date().toLocaleTimeString(), ' Received login post request', pink)
     log('Attempting login as ', email)
     const outcome = await requestToken(email, password)
     if (outcome) {
