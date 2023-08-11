@@ -1,3 +1,4 @@
+const crypto = require('node:crypto')
 const { Pool } = require('pg')
 const bcrypt = require('bcrypt')
 
@@ -41,6 +42,46 @@ async function createLogin(candidate) {
   return { email: candidate.email, name: candidate.name, hash }
 }
 
+function base62NoO(bigNumber) {
+  const digits =
+    '0123456789abcdefghijklmn-pqrstuvwxyzABCDEFGHIJKLMN_PQRSTUVWXYZ'
+
+  const len = BigInt(digits.length)
+  let result = ''
+
+  while (bigNumber > 0n) {
+    result = digits.charAt(Number(bigNumber % len)) + result
+    bigNumber /= len
+  }
+
+  return result
+}
+
+async function generateUnusedUID(length = 8) {
+  const min = 62n ** BigInt(length) + 1n
+  while (true) {
+    const uuid16 = crypto.randomUUID().replaceAll('-', '')
+    const base62 = base62NoO(BigInt('0x' + uuid16) + min).slice(0, length)
+    const matches = await pool.query(
+      'SELECT * FROM logins WHERE uid = $1::text',
+      [base62]
+    )
+
+    if (matches.rowCount === 0) {
+      return base62
+    }
+  }
+}
+
+async function addMockUser () {
+  const uid = await generateUnusedUID()
+  console.log('inserting mock uid=', uid)
+
+  await pool.query('INSERT INTO logins (uid, email, hash) VALUES ($1::text, $2::text, $3::text)',
+  [uid, `mock${crypto.randomUUID().replaceAll('-', '').slice(0, 4)}@fake.net`, '12345678']
+  )
+}
+
 async function getUser(email) {
   const result = await pool.query(
     'SELECT * FROM logins WHERE email ILIKE $1::text',
@@ -52,4 +93,4 @@ async function getUser(email) {
   return result.rows[0]
 }
 
-module.exports = { createLogin, getUser, matchCredentials }
+module.exports = { createLogin, getUser, matchCredentials, addMockUser }

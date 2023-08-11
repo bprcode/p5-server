@@ -30,8 +30,10 @@ const requestToken = async (email, password) => {
   const match = await matchCredentials(email, password)
 
   if (match) {
+    log('💚 match succeeded, returning signed token')
     return signToken(match)
   }
+  log('😡 match failed, returning false')
 
   return false
 }

@@ -4,7 +4,7 @@ const express = require('express')
 const app = express()
 require('express-async-errors')
 const port = 3000
-const { createLogin } = require('./database.js')
+const { createLogin, addMockUser } = require('./database.js')
 require('@bprcode/handy')
 const { protect, requestToken, signToken } = require('./authorization.js')
 
@@ -27,6 +27,11 @@ app
   .get('/', (req, res) => {
     res.send('Welcome to the server')
     log('Served: ', req.originalUrl, blue)
+  })
+
+  .get('/mocku', async (req, res) => {
+    await addMockUser()
+    res.send('ok')
   })
 
   .get('/me', protect, async (req, res) => {
@@ -54,15 +59,19 @@ app
   // Retrieve a bearer token
   .post('/login', acao(), async (req, res) => {
     const { email, password } = req.body
-    log('Received login post request with body:', pink)
+    log(
+      new Date().toLocaleTimeString(),
+      ' Received login post request with body:',
+      pink
+    )
     console.log(req.body)
     log('Attempting login as ', email)
     const outcome = await requestToken(email, password)
     if (outcome) {
-      return res.json({ token: outcome})
+      return res.json({ token: outcome })
     }
 
-    res.status(401).send('🛑 Invalid credentials.')
+    res.status(401).send({ error: 'Invalid credentials.' })
   })
 
   .options('/mock', acao(), (req, res) => {
@@ -94,6 +103,7 @@ app
   .use((err, req, res, next) => {
     res.status(500).send('⚠️ Server Error:<br>' + err.message)
     log('Server error encountered: ', pink, err.message)
+    log(err.stack)
   })
 
 const server = app.listen(port, () => {
