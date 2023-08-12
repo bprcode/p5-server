@@ -15,21 +15,28 @@ const {
 require('@bprcode/handy')
 const { protect, requestToken, signToken } = require('./authorization.js')
 
-function acao(headers) {
-  return (req, res, next) => {
-    res.set({
-      'Access-Control-Allow-Origin': process.env.ACAO,
-      'Access-Control-Max-Age': '3000',
-      ...headers,
-    })
-    next()
-  }
+function acao(req, res, next) {
+  res.set({
+    'Access-Control-Allow-Origin': process.env.ACAO,
+    'Access-Control-Max-Age': '3000',
+  })
+  next()
 }
 
 app
   .disable('x-powered-by')
   .use(express.json())
   .use(express.text())
+
+  .use('*', (req, res, next) => {
+    log(
+      new Date().toLocaleTimeString(),
+      ` ${req.method}`,
+      yellow,
+      ` ${req.originalUrl}`
+    )
+    next()
+  })
 
   .get('/', (req, res) => {
     res.send('Welcome to the server')
@@ -58,12 +65,14 @@ app
   })
 
   .get('/users/:id', (req, res) => {
+    log('got users request for', green, req.params.id)
     getUser(req.params.id)
       .then(user => res.json(user))
       .catch(error => res.json({ error: error.message }))
   })
 
-  .get('/users/:id/notebook', async (req, res) => {
+  .get('/users/:id/notebook', acao, async (req, res) => {
+    log('got notebook request for ', blue, req.params.id)
     listNotes(req.params.id)
       .then(noteList => res.json(noteList))
       .catch(error => res.json({ error: error.message }))
@@ -94,16 +103,13 @@ app
     res.json(token)
   })
 
-  .options(
-    '/login',
-    acao({ 'Access-Control-Allow-Headers': 'Content-Type' }),
-    async (req, res) => {
-      res.send()
-    }
-  )
+  .options('/login', acao, async (req, res) => {
+    res.set({ 'Access-Control-Allow-Headers': 'Content-Type' })
+    res.send()
+  })
 
   // Retrieve a bearer token
-  .post('/login', acao(), async (req, res) => {
+  .post('/login', acao, async (req, res) => {
     const { email, password } = req.body
     log(new Date().toLocaleTimeString(), ' Received login post request', pink)
     log('Attempting login as ', email)
@@ -115,7 +121,7 @@ app
     res.status(401).send({ error: 'Invalid credentials.' })
   })
 
-  .options('/mock', acao(), (req, res) => {
+  .options('/mock', acao, (req, res) => {
     log('Preflight request received: ', yellow, req.originalUrl)
     res.set({
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
@@ -123,13 +129,13 @@ app
     res.send()
   })
 
-  .post('/mock', acao(), protect, (req, res) => {
+  .post('/mock', acao, protect, (req, res) => {
     log('/mock ', yellow, ' obeying post from bearer=', req.bearer.name)
 
     res.send('👍 nice post man')
   })
 
-  .get('/ping', acao(), (req, res) => {
+  .get('/ping', acao, (req, res) => {
     log('Got ping request with headers:', blue)
     log(req.headers)
 

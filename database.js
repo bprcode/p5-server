@@ -137,6 +137,7 @@ async function getNote(id) {
 }
 
 async function listNotes(author) {
+  log('getting note list for ', blue, author)
   const result = await pool.query(
     'SELECT note_id, summary FROM notes WHERE author_id = $1::text',
     [author]
