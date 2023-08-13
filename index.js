@@ -15,13 +15,48 @@ const {
 require('@bprcode/handy')
 const { protect, requestToken, signToken } = require('./authorization.js')
 
-function acao(req, res, next) {
+let emulateLag = async () => {}
+
+if (process.env.NODE_ENV !== 'production') {
+  log('Not in production mode. Emulating lag.', pink)
+  log(
+    'Reminder: express-async-errors will pass control' +
+      ' on middleware promise rejections!'
+  )
+  emulateLag = () =>
+    new Promise(ok => {
+      const delay = 500 + 500 * Math.random()
+      const dc = Math.random()
+      log('dc=', dc)
+      if (dc < 0.5) {
+        setTimeout(ok, delay)
+      } else {
+        log('🪩 Simulating disconnect')
+      }
+    })
+}
+
+async function acao(req, res, next) {
   res.set({
     'Access-Control-Allow-Origin': process.env.ACAO,
     'Access-Control-Max-Age': '3000',
   })
+  log('About to await...', pink)
+  await emulateLag()
+  log('Await completed.', green)
+
   next()
 }
+
+async function acaoNoLag(req, res, next){
+  res.set({
+    'Access-Control-Allow-Origin': process.env.ACAO,
+    'Access-Control-Max-Age': '3000',
+  })
+
+  next()
+}
+
 
 app
   .disable('x-powered-by')
@@ -116,13 +151,13 @@ app
     }
   })
 
-  .options('/login', acao, async (req, res) => {
+  .options('/login', acaoNoLag, async (req, res) => {
     res.set({ 'Access-Control-Allow-Headers': 'Content-Type' })
     res.send()
   })
 
   // Retrieve a bearer token
-  .post('/login', acao, async (req, res) => {
+  .post('/login', acaoNoLag, async (req, res) => {
     const { email, password } = req.body
     log(new Date().toLocaleTimeString(), ' Received login post request', pink)
     log('Attempting login as ', email)
