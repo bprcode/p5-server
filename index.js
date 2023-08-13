@@ -83,7 +83,7 @@ app
     next()
   })
 
-  .get('/notes/:id', (req, res) => {
+  .get('/notes/:id', acao, (req, res) => {
     getNote(req.params.id)
       .then(user => res.json(user))
       .catch(error => res.json({ error: error.message }))
