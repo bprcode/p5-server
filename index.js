@@ -17,8 +17,8 @@ const { protect, requestToken, signToken } = require('./authorization.js')
 
 let emulateLag = async () => {}
 
-if (process.env.NODE_ENV !== 'production') {
-  log('Not in production mode. Emulating lag.', pink)
+if (process.env.NODE_ENV === 'development') {
+  log('In dev mode. Emulating lag.', pink)
   log(
     'Reminder: express-async-errors will pass control' +
       ' on middleware promise rejections!'
