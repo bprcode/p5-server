@@ -94,13 +94,26 @@ app
   })
 
   // Create a new user
-  .post('/register', async (req, res) => {
+  .options('/register', acao, async (req, res) => {
+    res.set({ 'Access-Control-Allow-Headers': 'Content-Type' })
+    res.send()
+  })
+
+  .post('/register', acao, async (req, res) => {
     const candidate = req.body
     log('Attempting to create ', blue, candidate)
 
-    const claims = await createLogin(candidate)
-    const token = signToken(claims)
-    res.json(token)
+    try {
+      const claims = await createLogin(candidate)
+      const signed = signToken(claims)
+      res.json({ token: signed })
+    } catch (e) {
+      if (e.message.match('email already in use')) {
+        res.json({ error: 'email already in use.' })
+      } else {
+        res.json({ error: 'Server error.' })
+      }
+    }
   })
 
   .options('/login', acao, async (req, res) => {

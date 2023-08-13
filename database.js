@@ -142,9 +142,7 @@ async function listNotes(author) {
     'SELECT note_id, summary FROM notes WHERE author_id = $1::text',
     [author]
   )
-  if (!result.rows.length) {
-    throw Error('No matching notes.')
-  }
+
   return result.rows
 }
 
