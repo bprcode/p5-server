@@ -13,7 +13,11 @@ const {
   listNotes,
 } = require('./database.js')
 require('@bprcode/handy')
-const { identifySource, requestToken, signToken } = require('./authorization.js')
+const {
+  identifySource,
+  requestToken,
+  signToken,
+} = require('./authorization.js')
 
 let emulateLag = async () => {}
 
@@ -48,7 +52,7 @@ async function acao(req, res, next) {
   next()
 }
 
-async function acaoNoLag(req, res, next){
+async function acaoNoLag(req, res, next) {
   res.set({
     'Access-Control-Allow-Origin': process.env.ACAO,
     'Access-Control-Max-Age': '3000',
@@ -56,7 +60,6 @@ async function acaoNoLag(req, res, next){
 
   next()
 }
-
 
 app
   .disable('x-powered-by')
@@ -73,56 +76,12 @@ app
     next()
   })
 
-  .use('*', identifySource)
-
   .get('/', (req, res) => {
     res.send('Welcome to the server')
     log('Served: ', req.originalUrl, blue)
   })
 
-  // users routes
-  .get('/users/:id', (req, res) => {
-    log('got users request for', green, req.params.id)
-    getUser(req.params.id)
-      .then(user => res.json(user))
-      .catch(error => res.json({ error: error.message }))
-  })
-
-  .get('/users/:id/notebook', acao, async (req, res) => {
-    log('got notebook request for ', blue, req.params.id)
-    listNotes(req.params.id)
-      .then(noteList => res.json(noteList))
-      .catch(error => res.json({ error: error.message }))
-  })
-
-  .post('/users/:id/notebook', acao, async (req, res) => {
-    log('POST to notebook for ', yellow, req.params.id)
-    addNote({ author: req.params.id, content: req.body.content, title: req.body.title})
-      .then(posted => {
-        log('successfully returned ', posted)
-        res.json(posted)})
-      .catch(error => {
-        log('insert error: ', error.message)
-        res.json({error: error.message })})
-  })
-
-  // notes routes
-  .get('/notes/:id', acao, (req, res) => {
-    getNote({noteId: req.params.id, authorId: req.bearer.uid})
-      .then(user => res.json(user))
-      .catch(error => res.json({ error: error.message }))
-  })
-
-  .put('/notes/:id', acao, (req, res) => {
-    updateNote({
-      noteId: req.params.id,
-      authorId: req.body.author,
-      content: req.body.content,
-      title: req.body.title
-    })
-      .then(result => res.json(result))
-      .catch(error => res.json({error: error.message}))
-  })
+  // PUBLIC ROUTES ____________________________________________________________
 
   // Create a new user
   .options('/register', acao, async (req, res) => {
@@ -178,6 +137,67 @@ app
     log(req.headers)
 
     res.send(moo() + ' pong!')
+  })
+
+  // SECURED ROUTES ___________________________________________________________
+
+  .use('*', identifySource)
+  .use('*', (req, res, next) => {
+    if (req.bearer.expired) {
+      return res.status(401).json({ error: 'Token expired.' })
+    }
+    next()
+  })
+
+  // users routes
+  .get('/users/:id/notebook', acao, async (req, res) => {
+    log('got notebook request for ', blue, req.params.id)
+    if (req.bearer.uid !== req.params.id) {
+      log('denied: ', blue, req.bearer.uid, ' !== ', yellow, req.params.id)
+      return res.status(401).json({ error: 'Permission denied.' })
+    }
+    listNotes(req.params.id)
+      .then(noteList => res.json(noteList))
+      .catch(error => res.status(500).json({ error: error.message }))
+  })
+
+  .post('/users/:id/notebook', acao, async (req, res) => {
+    if (req.bearer.uid !== req.params.id) {
+      log('denied: ', blue, req.bearer.uid, ' !== ', yellow, req.params.id)
+      return res.status(401).json({ error: 'Permission denied.' })
+    }
+
+    addNote({
+      author: req.params.id,
+      content: req.body.content,
+      title: req.body.title,
+    })
+      .then(posted => {
+        log('successfully returned ', posted)
+        res.json(posted)
+      })
+      .catch(error => {
+        log('insert error: ', error.message)
+        res.json({ error: error.message })
+      })
+  })
+
+  // notes routes
+  .get('/notes/:id', acao, (req, res) => {
+    getNote({ noteId: req.params.id, authorId: req.bearer.uid })
+      .then(user => res.json(user))
+      .catch(error => res.status(401).json({ error: error.message }))
+  })
+
+  .put('/notes/:id', acao, (req, res) => {
+    updateNote({
+      noteId: req.params.id,
+      authorId: req.bearer.uid,
+      content: req.body.content,
+      title: req.body.title,
+    })
+      .then(result => res.json(result))
+      .catch(error => res.status(401).json({ error: error.message }))
   })
 
   .get('*', (req, res) => {

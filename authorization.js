@@ -28,9 +28,10 @@ const identifySource = async (req, res, next) => {
 
     next()
   } catch (e) {
+    req.bearer = {}
+    if (e.message === 'jwt expired') { req.bearer.expired = true }
     log('❌ Verification failed: ', pink, e.message)
     log('Assigning empty record.')
-    req.bearer = {}
     return next()
   }
 }

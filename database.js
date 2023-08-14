@@ -154,7 +154,7 @@ async function updateNote({ content, title, noteId, authorId }) {
 async function listNotes(author) {
   log('getting note list for ', blue, author)
   const result = await pool.query(
-    'SELECT note_id, summary FROM notes WHERE author_id = $1::text',
+    'SELECT note_id, title, summary FROM notes WHERE author_id = $1::text',
     [author]
   )
 
