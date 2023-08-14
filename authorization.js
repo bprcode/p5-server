@@ -16,14 +16,14 @@ const identifySource = async (req, res, next) => {
 
   // Otherwise, validate the token:
   try {
-    log('identifying source of ', req.method, ' to ', req.originalUrl)
+    // log('identifying source of ', req.method, ' to ', req.originalUrl)
     const bearer = req.headers.authorization.split(/bearer /i)[1]
 
     const payload = jwt.verify(bearer, process.env.JWT_SECRET, {
       algorithms: ['HS512'],
     })
 
-    log('🗝️ Using values from payload: ', payload)
+    // log('🗝️ Using values from payload: ', payload)
     req.bearer = payload
 
     next()

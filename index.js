@@ -42,7 +42,7 @@ if (process.env.NODE_ENV === 'development') {
 async function acao(req, res, next) {
   res.set({
     'Access-Control-Allow-Origin': process.env.ACAO,
-    'Access-Control-Max-Age': '3000',
+    'Access-Control-Max-Age': '300',
   })
   log('About to await...', pink)
   await emulateLag()
@@ -54,7 +54,7 @@ async function acao(req, res, next) {
 async function acaoNoLag(req, res, next) {
   res.set({
     'Access-Control-Allow-Origin': process.env.ACAO,
-    'Access-Control-Max-Age': '3000',
+    'Access-Control-Max-Age': '300',
   })
 
   next()
@@ -81,24 +81,27 @@ app
   })
 
   // PUBLIC ROUTES ____________________________________________________________
-  
-  .options('/register', acaoNoLag, async (req, res) => {
+
+  .options('/register', acao, async (req, res) => {
     res.set({ 'Access-Control-Allow-Headers': 'Content-Type' })
     res.send()
   })
 
-  .options('/login', acaoNoLag, async (req, res) => {
+  .options('/login', acao, async (req, res) => {
     res.set({ 'Access-Control-Allow-Headers': 'Content-Type' })
     res.send()
   })
 
-  .options('/users/:id/notebook', acaoNoLag, async (req, res) => {
+  .options('/users/:id/notebook', acao, async (req, res) => {
     res.set({ 'Access-Control-Allow-Headers': 'Content-Type, Authorization' })
     res.send()
   })
 
-  .options('/notes/:id', acaoNoLag, async (req, res) => {
-    res.set({ 'Access-Control-Allow-Headers': 'Content-Type, Authorization' })
+  .options('/notes/:id', acao, async (req, res) => {
+    res.set({
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Allow-Methods': 'PUT',
+    })
     res.send()
   })
 
@@ -161,7 +164,6 @@ app
   // users routes
   .get('/users/:id/notebook', acao, async (req, res) => {
     // Validation: path-id = <bearer>
-    log('got notebook request for ', blue, req.params.id)
     if (req.bearer.uid !== req.params.id) {
       log('denied: ', blue, req.bearer.uid, ' !== ', yellow, req.params.id)
       return res.status(401).json({ error: 'Permission denied.' })
@@ -202,6 +204,7 @@ app
   })
 
   .put('/notes/:id', acao, (req, res) => {
+    log('Applying updates: ', yellow, req.body.content, ', ', req.body.title)
     // Validation: author = <bearer>, handled in query
     updateNote({
       noteId: req.params.id,
