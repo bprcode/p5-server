@@ -6,7 +6,6 @@ require('express-async-errors')
 const port = 3000
 const {
   createLogin,
-  getUser,
   getNote,
   addNote,
   updateNote,
@@ -82,13 +81,28 @@ app
   })
 
   // PUBLIC ROUTES ____________________________________________________________
-
-  // Create a new user
-  .options('/register', acao, async (req, res) => {
+  
+  .options('/register', acaoNoLag, async (req, res) => {
     res.set({ 'Access-Control-Allow-Headers': 'Content-Type' })
     res.send()
   })
 
+  .options('/login', acaoNoLag, async (req, res) => {
+    res.set({ 'Access-Control-Allow-Headers': 'Content-Type' })
+    res.send()
+  })
+
+  .options('/users/:id/notebook', acaoNoLag, async (req, res) => {
+    res.set({ 'Access-Control-Allow-Headers': 'Content-Type, Authorization' })
+    res.send()
+  })
+
+  .options('/notes/:id', acaoNoLag, async (req, res) => {
+    res.set({ 'Access-Control-Allow-Headers': 'Content-Type, Authorization' })
+    res.send()
+  })
+
+  // Create a new user
   .post('/register', acao, async (req, res) => {
     const candidate = req.body
     log('Attempting to create ', blue, candidate)
@@ -104,11 +118,6 @@ app
         res.json({ error: 'Server error.' })
       }
     }
-  })
-
-  .options('/login', acaoNoLag, async (req, res) => {
-    res.set({ 'Access-Control-Allow-Headers': 'Content-Type' })
-    res.send()
   })
 
   // Retrieve a bearer token
@@ -151,6 +160,7 @@ app
 
   // users routes
   .get('/users/:id/notebook', acao, async (req, res) => {
+    // Validation: path-id = <bearer>
     log('got notebook request for ', blue, req.params.id)
     if (req.bearer.uid !== req.params.id) {
       log('denied: ', blue, req.bearer.uid, ' !== ', yellow, req.params.id)
@@ -162,6 +172,7 @@ app
   })
 
   .post('/users/:id/notebook', acao, async (req, res) => {
+    // Validation: path-id = <bearer>
     if (req.bearer.uid !== req.params.id) {
       log('denied: ', blue, req.bearer.uid, ' !== ', yellow, req.params.id)
       return res.status(401).json({ error: 'Permission denied.' })
@@ -184,12 +195,14 @@ app
 
   // notes routes
   .get('/notes/:id', acao, (req, res) => {
+    // Validation: author = <bearer>, handled in query
     getNote({ noteId: req.params.id, authorId: req.bearer.uid })
       .then(user => res.json(user))
       .catch(error => res.status(401).json({ error: error.message }))
   })
 
   .put('/notes/:id', acao, (req, res) => {
+    // Validation: author = <bearer>, handled in query
     updateNote({
       noteId: req.params.id,
       authorId: req.bearer.uid,
