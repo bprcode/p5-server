@@ -2,25 +2,36 @@ require('@bprcode/handy')
 const jwt = require('jsonwebtoken')
 const { matchCredentials } = require('./database')
 
-const protect = async (req, res, next) => {
+/**
+ * Extract and verify the request's bearer token.
+ * If verified, store the claims in req.bearer.
+ */
+const identifySource = async (req, res, next) => {
+  log('req.bearer was initially ', blue, req.bearer)
+  if (!req.headers.authorization) {
+    log('👻 No authorization provided. Assigning empty record.')
+    req.bearer = {}
+    return next()
+  }
+
+  // Otherwise, validate the token:
   try {
-    log('protecting ', req.method, ' to ', req.originalUrl)
+    log('identifying source of ', req.method, ' to ', req.originalUrl)
     const bearer = req.headers.authorization.split(/bearer /i)[1]
 
     const payload = jwt.verify(bearer, process.env.JWT_SECRET, {
       algorithms: ['HS512'],
     })
 
-    log('Using values from payload: ', payload)
+    log('🗝️ Using values from payload: ', payload)
     req.bearer = payload
 
-    log('🗝️ Good token. Allowed.')
     next()
   } catch (e) {
-    log('Verification failed: ', pink, e.message)
-    res
-      .status(401) // Not Authorized
-      .send(`🔒 Access Denied.`)
+    log('❌ Verification failed: ', pink, e.message)
+    log('Assigning empty record.')
+    req.bearer = {}
+    return next()
   }
 }
 
@@ -47,10 +58,10 @@ const signToken = claims => {
 
   const token = jwt.sign(sanitized, process.env.JWT_SECRET, {
     algorithm: 'HS512',
-    expiresIn: '120s',
+    expiresIn: '10m',
   })
 
   return token
 }
 
-module.exports = { protect, requestToken, signToken }
+module.exports = { identifySource, requestToken, signToken }

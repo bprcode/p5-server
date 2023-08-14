@@ -6,14 +6,14 @@ require('express-async-errors')
 const port = 3000
 const {
   createLogin,
-  addMockUser,
   getUser,
   getNote,
   addNote,
+  updateNote,
   listNotes,
 } = require('./database.js')
 require('@bprcode/handy')
-const { protect, requestToken, signToken } = require('./authorization.js')
+const { identifySource, requestToken, signToken } = require('./authorization.js')
 
 let emulateLag = async () => {}
 
@@ -73,16 +73,14 @@ app
     next()
   })
 
+  .use('*', identifySource)
+
   .get('/', (req, res) => {
     res.send('Welcome to the server')
     log('Served: ', req.originalUrl, blue)
   })
 
-  .use('/users*', (req, res, next) => {
-    log('(users middleware -- protect this route later)')
-    next()
-  })
-
+  // users routes
   .get('/users/:id', (req, res) => {
     log('got users request for', green, req.params.id)
     getUser(req.params.id)
@@ -108,19 +106,22 @@ app
         res.json({error: error.message })})
   })
 
-  .use('/notes*', (req, res, next) => {
-    log('(notes middleware -- protect this route later)')
-    next()
-  })
-
+  // notes routes
   .get('/notes/:id', acao, (req, res) => {
-    getNote(req.params.id)
+    getNote({noteId: req.params.id, authorId: req.bearer.uid})
       .then(user => res.json(user))
       .catch(error => res.json({ error: error.message }))
   })
 
-  .get('/me', protect, async (req, res) => {
-    res.send('🙋‍♂️ Hello ' + req.bearer.name + ` (${req.bearer.email})`)
+  .put('/notes/:id', acao, (req, res) => {
+    updateNote({
+      noteId: req.params.id,
+      authorId: req.body.author,
+      content: req.body.content,
+      title: req.body.title
+    })
+      .then(result => res.json(result))
+      .catch(error => res.json({error: error.message}))
   })
 
   // Create a new user
@@ -170,12 +171,6 @@ app
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     })
     res.send()
-  })
-
-  .post('/mock', acao, protect, (req, res) => {
-    log('/mock ', yellow, ' obeying post from bearer=', req.bearer.name)
-
-    res.send('👍 nice post man')
   })
 
   .get('/ping', acao, (req, res) => {

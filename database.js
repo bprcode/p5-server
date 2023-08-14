@@ -118,7 +118,7 @@ async function getUser(id) {
   return result.rows[0]
 }
 
-async function addNote({author, content, title}) {
+async function addNote({ author, content, title }) {
   const noteId = await generateUnusedId('notes', 'note_id')
   const result = await pool.query(
     'INSERT INTO notes (note_id, author_id, content, title) ' +
@@ -128,18 +128,27 @@ async function addNote({author, content, title}) {
   return result.rows[0]
 }
 
-async function getNote(id) {
+async function getNote({noteId, authorId}) {
   const result = await pool.query(
-    'SELECT * FROM notes WHERE note_id ILIKE $1::text',
-    [id]
+    'SELECT * FROM notes WHERE note_id = $1::text AND author_id = $2::text',
+    [noteId, authorId]
   )
   if (!result.rows.length) {
-    throw Error('Note not found.')
+    throw Error('No matching note found.')
   }
   return result.rows[0]
 }
 
-async function updateNote({id, content, title}) {
+async function updateNote({ content, title, noteId, authorId }) {
+  const result = await pool.query(
+    'UPDATE notes SET content = $1::text, title = $2::text WHERE ' +
+      'note_id = $3::text AND author_id = $4::text RETURNING *',
+    [content, title, noteId, authorId]
+  )
+  if (!result.rows.length) {
+    throw Error('No match found.')
+  }
+  return result.rows[0]
 }
 
 async function listNotes(author) {
