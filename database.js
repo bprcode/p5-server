@@ -35,13 +35,15 @@ async function createLogin(candidate) {
     parseInt(process.env.SALT_ROUNDS)
   )
 
+  const uid = await generateUnusedId('logins', 'uid')
+
   await pool.query(
-    'INSERT INTO logins (email, name, hash) VALUES ' +
-      '($1::text, $2::text, $3::text)',
-    [candidate.email, candidate.name, hash]
+    'INSERT INTO logins (email, name, hash, uid) VALUES ' +
+      '($1::text, $2::text, $3::text, $4::text)',
+    [candidate.email, candidate.name, hash, uid]
   )
 
-  return { email: candidate.email, name: candidate.name, hash }
+  return { email: candidate.email, name: candidate.name }
 }
 
 function base62NoO(bigNumber) {
@@ -94,15 +96,6 @@ async function addMockUser() {
   )
 }
 
-async function addNote(author, content) {
-  const noteId = await generateUnusedId('notes', 'note_id')
-  await pool.query(
-    'INSERT INTO notes (note_id, author_id, content) ' +
-      'VALUES ($1::text, $2::text, $3::text)',
-    [noteId, author, content]
-  )
-}
-
 async function getUserByEmail(email) {
   const result = await pool.query(
     'SELECT * FROM logins WHERE email ILIKE $1::text',
@@ -125,6 +118,16 @@ async function getUser(id) {
   return result.rows[0]
 }
 
+async function addNote({author, content, title}) {
+  const noteId = await generateUnusedId('notes', 'note_id')
+  const result = await pool.query(
+    'INSERT INTO notes (note_id, author_id, content, title) ' +
+      'VALUES ($1::text, $2::text, $3::text, $4::text) RETURNING *',
+    [noteId, author, content, title]
+  )
+  return result.rows[0]
+}
+
 async function getNote(id) {
   const result = await pool.query(
     'SELECT * FROM notes WHERE note_id ILIKE $1::text',
@@ -134,6 +137,9 @@ async function getNote(id) {
     throw Error('Note not found.')
   }
   return result.rows[0]
+}
+
+async function updateNote({id, content, title}) {
 }
 
 async function listNotes(author) {
@@ -154,4 +160,5 @@ module.exports = {
   matchCredentials,
   addMockUser,
   addNote,
+  updateNote,
 }

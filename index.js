@@ -28,7 +28,7 @@ if (process.env.NODE_ENV === 'development') {
       const delay = 500 + 500 * Math.random()
       const dc = Math.random()
       log('dc=', dc)
-      if (dc < 0.5) {
+      if (dc < 0.8) {
         setTimeout(ok, delay)
       } else {
         log('🪩 Simulating disconnect')
@@ -78,23 +78,7 @@ app
     log('Served: ', req.originalUrl, blue)
   })
 
-  .post('/mockuser', async (req, res) => {
-    await addMockUser()
-    res.send('ok ' + moo())
-  })
-
-  .post('/mocknote', async (req, res) => {
-    await addNote(
-      '164dccb6-68c9-42ce-838b-9992b0fd2842',
-      'Lorem ipsum dolor sit amet, consectetur adipiscing elit. ' +
-        'Maecenas sed ipsum posuere, congue urna ut, iaculis magna. ' +
-        'In hac habitasse platea dictumst. Sed ac ligula in velit ' +
-        'commodo ullamcorper.'
-    )
-    res.send('thanks for the thoughtful note ' + moo())
-  })
-
-  .get('/users*', (req, res, next) => {
+  .use('/users*', (req, res, next) => {
     log('(users middleware -- protect this route later)')
     next()
   })
@@ -113,7 +97,18 @@ app
       .catch(error => res.json({ error: error.message }))
   })
 
-  .get('/notes*', (req, res, next) => {
+  .post('/users/:id/notebook', acao, async (req, res) => {
+    log('POST to notebook for ', yellow, req.params.id)
+    addNote({ author: req.params.id, content: req.body.content, title: req.body.title})
+      .then(posted => {
+        log('successfully returned ', posted)
+        res.json(posted)})
+      .catch(error => {
+        log('insert error: ', error.message)
+        res.json({error: error.message })})
+  })
+
+  .use('/notes*', (req, res, next) => {
     log('(notes middleware -- protect this route later)')
     next()
   })
