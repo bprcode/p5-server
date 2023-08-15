@@ -2,6 +2,7 @@
 require('dotenv').config({ path: '../.secret/token.env' })
 const express = require('express')
 const app = express()
+const cookieParser = require('cookie-parser')
 require('express-async-errors')
 const port = 3000
 const {
@@ -28,10 +29,10 @@ if (process.env.NODE_ENV === 'development') {
   )
   emulateLag = () =>
     new Promise(ok => {
-      const delay = 500 + 500 * Math.random()
+      const delay = 1500 + 500 * Math.random()
       const dc = Math.random()
       log('dc=', dc)
-      if (dc < 0.8) {
+      if (dc < 0.999) {
         setTimeout(ok, delay)
       } else {
         log('🪩 Simulating disconnect')
@@ -45,7 +46,17 @@ async function acao(req, res, next) {
     'Access-Control-Max-Age': '300',
   })
   log('About to await...', pink)
-  await emulateLag()
+  await new Promise(ok => {
+    const delay = 1500 + 500 * Math.random()
+    const dc = Math.random()
+    log('dc=', dc)
+    if (dc < 0.999) {
+      setTimeout(ok, delay)
+    } else {
+      log('🪩 Simulating disconnect')
+    }
+  })
+  //await emulateLag()
   log('Await completed.', green)
 
   next()
@@ -64,6 +75,7 @@ app
   .disable('x-powered-by')
   .use(express.json())
   .use(express.text())
+  .use(cookieParser())
 
   .use('*', (req, res, next) => {
     log(
@@ -81,6 +93,26 @@ app
   })
 
   // PUBLIC ROUTES ____________________________________________________________
+
+  .get('/cookie', acao, (req, res) => {
+    const cid = (Math.random() * 100).toFixed(0)
+    log(`Sending cookie ${cid} 🍪`)
+    res.set({ 'Access-Control-Allow-Credentials': 'true' })
+    res.set({
+      'Set-Cookie':
+        `chocolate=tasty` +
+        ` ${cid};` +
+        ` Max-Age=120; SameSite=Strict; HttpOnly`,
+    })
+    res.send('chocolate chip')
+  })
+  .get('/check', acao, (req, res) => {
+    res.set({ 'Access-Control-Allow-Credentials': 'true' })
+    log('☑️ Checking headers:')
+    log(req.headers)
+    log('req.cookies = ', req.cookies)
+    res.send(':)')
+  })
 
   .options('/register', acao, async (req, res) => {
     res.set({ 'Access-Control-Allow-Headers': 'Content-Type' })
@@ -155,7 +187,7 @@ app
 
   .use('*', identifySource)
   .use('*', (req, res, next) => {
-    if (req.bearer.expired) {
+    if (req.verified.expired) {
       return res.status(401).json({ error: 'Token expired.' })
     }
     next()
@@ -164,8 +196,8 @@ app
   // users routes
   .get('/users/:id/notebook', acao, async (req, res) => {
     // Validation: path-id = <bearer>
-    if (req.bearer.uid !== req.params.id) {
-      log('denied: ', blue, req.bearer.uid, ' !== ', yellow, req.params.id)
+    if (req.verified.uid !== req.params.id) {
+      log('denied: ', blue, req.verified.uid, ' !== ', yellow, req.params.id)
       return res.status(401).json({ error: 'Permission denied.' })
     }
     listNotes(req.params.id)
@@ -175,8 +207,8 @@ app
 
   .post('/users/:id/notebook', acao, async (req, res) => {
     // Validation: path-id = <bearer>
-    if (req.bearer.uid !== req.params.id) {
-      log('denied: ', blue, req.bearer.uid, ' !== ', yellow, req.params.id)
+    if (req.verified.uid !== req.params.id) {
+      log('denied: ', blue, req.verified.uid, ' !== ', yellow, req.params.id)
       return res.status(401).json({ error: 'Permission denied.' })
     }
 
@@ -198,7 +230,7 @@ app
   // notes routes
   .get('/notes/:id', acao, (req, res) => {
     // Validation: author = <bearer>, handled in query
-    getNote({ noteId: req.params.id, authorId: req.bearer.uid })
+    getNote({ noteId: req.params.id, authorId: req.verified.uid })
       .then(user => res.json(user))
       .catch(error => res.status(401).json({ error: error.message }))
   })
@@ -208,7 +240,7 @@ app
     // Validation: author = <bearer>, handled in query
     updateNote({
       noteId: req.params.id,
-      authorId: req.bearer.uid,
+      authorId: req.verified.uid,
       content: req.body.content,
       title: req.body.title,
     })

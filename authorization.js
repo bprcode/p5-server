@@ -4,13 +4,13 @@ const { matchCredentials } = require('./database')
 
 /**
  * Extract and verify the request's bearer token.
- * If verified, store the claims in req.bearer.
+ * If verified, store the claims in req.verified.
  */
 const identifySource = async (req, res, next) => {
-  log('req.bearer was initially ', blue, req.bearer)
+  log('req.verified was initially ', blue, req.verified)
   if (!req.headers.authorization) {
     log('👻 No authorization provided. Assigning empty record.')
-    req.bearer = {}
+    req.verified = {}
     return next()
   }
 
@@ -24,12 +24,12 @@ const identifySource = async (req, res, next) => {
     })
 
     // log('🗝️ Using values from payload: ', payload)
-    req.bearer = payload
+    req.verified = payload
 
     next()
   } catch (e) {
-    req.bearer = {}
-    if (e.message === 'jwt expired') { req.bearer.expired = true }
+    req.verified = {}
+    if (e.message === 'jwt expired') { req.verified.expired = true }
     log('❌ Verification failed: ', pink, e.message)
     log('Assigning empty record.')
     return next()
