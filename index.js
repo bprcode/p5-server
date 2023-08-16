@@ -32,7 +32,7 @@ if (process.env.NODE_ENV === 'development') {
       const delay = 1500 + 500 * Math.random()
       const dc = Math.random()
       log('dc=', dc)
-      if (dc < 0.8) {
+      if (dc < 0.9) {
         setTimeout(ok, delay)
       } else {
         log('🪩 Simulating disconnect')
@@ -43,6 +43,7 @@ if (process.env.NODE_ENV === 'development') {
 async function acao(req, res, next) {
   res.set({
     'Access-Control-Allow-Origin': process.env.ACAO,
+    'Access-Control-Allow-Credentials': 'true',
     'Access-Control-Max-Age': '300',
   })
   log('About to await...', pink)
@@ -55,6 +56,7 @@ async function acao(req, res, next) {
 async function acaoNoLag(req, res, next) {
   res.set({
     'Access-Control-Allow-Origin': process.env.ACAO,
+    'Access-Control-Allow-Credentials': 'true',
     'Access-Control-Max-Age': '300',
   })
 
@@ -96,7 +98,6 @@ app
   .get('/cookie', acao, (req, res) => {
     const cid = (Math.random() * 100).toFixed(0)
     log(`Sending cookie ${cid} 🍪`)
-    res.set({ 'Access-Control-Allow-Credentials': 'true' })
     // res.set({
     //   'Set-Cookie':
     //     `chocolate=tasty` +
@@ -106,8 +107,8 @@ app
     setTokenCookie(res, 'strawberry')
     res.send('chocolate chip')
   })
+
   .get('/check', acao, (req, res) => {
-    res.set({ 'Access-Control-Allow-Credentials': 'true' })
     log('☑️ Checking headers:')
     log(req.headers)
     log('req.cookies = ', req.cookies)
@@ -117,7 +118,6 @@ app
   .options('/register', acao, async (req, res) => {
     res.set({
       'Access-Control-Allow-Headers': 'Content-Type',
-      'Access-Control-Allow-Credentials': 'true',
     })
     res.send()
   })
@@ -125,22 +125,18 @@ app
   .options('/login', acao, async (req, res) => {
     res.set({
       'Access-Control-Allow-Headers': 'Content-Type',
-      'Access-Control-Allow-Credentials': 'true',
+      'Access-Control-Allow-Methods': 'DELETE',
     })
     res.send()
   })
 
   .options('/users/:id/notebook', acao, async (req, res) => {
-    res.set({
-      'Access-Control-Allow-Credentials': 'true',
-    })
     res.send()
   })
 
   .options('/notes/:id', acao, async (req, res) => {
     res.set({
       'Access-Control-Allow-Headers': 'Content-Type',
-      'Access-Control-Allow-Credentials': 'true',
       'Access-Control-Allow-Methods': 'PUT',
     })
     res.send()
@@ -148,8 +144,6 @@ app
 
   // Create a new user
   .post('/register', acao, async (req, res) => {
-    res.set({ 'Access-Control-Allow-Credentials': 'true' })
-
     const candidate = req.body
 
     try {
@@ -159,17 +153,15 @@ app
       res.json(claims)
     } catch (e) {
       if (e.message.match('email already in use')) {
-        res.json({ error: 'email already in use.' })
+        res.status(400).json({ error: 'email already in use.' })
       } else {
-        res.json({ error: 'Server error.' })
+        res.status(500).json({ error: 'Server error.' })
       }
     }
   })
 
   // Retrieve an identity token
   .post('/login', acaoNoLag, async (req, res) => {
-    res.set({ 'Access-Control-Allow-Credentials': 'true' })
-
     const { email, password } = req.body
     log(new Date().toLocaleTimeString(), ' Received login post request', pink)
     log('Attempting login as ', email)
@@ -185,6 +177,17 @@ app
     }
 
     res.status(401).send({ error: 'Invalid credentials.' })
+  })
+
+  // Expire an identity token
+  .delete('/login', acao, (req, res) => {
+    log('login-delete received', pink)
+    return res.cookie('token', '', {
+      httpOnly: true,
+      sameSite: 'Strict',
+      secure: process.env.NODE_ENV !== 'development',
+      expires: new Date(0)
+    }).json({})
   })
 
   // SECURED ROUTES ___________________________________________________________

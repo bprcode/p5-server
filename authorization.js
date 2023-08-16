@@ -7,8 +7,6 @@ const { matchCredentials } = require('./database')
  * If verified, store the claims in req.verified.
  */
 const identifyCredentials = async (req, res, next) => {
-  res.set({ 'Access-Control-Allow-Credentials': 'true' })
-
   if (!req.cookies.token) {
     return res.status(401).json({ error: 'No identification provided.' })
   }
