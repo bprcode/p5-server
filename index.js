@@ -14,7 +14,7 @@ const {
 } = require('./database.js')
 require('@bprcode/handy')
 const {
-  identifySource,
+  identifyCredentials,
   requestToken,
   signToken,
 } = require('./authorization.js')
@@ -32,7 +32,7 @@ if (process.env.NODE_ENV === 'development') {
       const delay = 1500 + 500 * Math.random()
       const dc = Math.random()
       log('dc=', dc)
-      if (dc < 0.999) {
+      if (dc < 0.8) {
         setTimeout(ok, delay)
       } else {
         log('🪩 Simulating disconnect')
@@ -46,17 +46,7 @@ async function acao(req, res, next) {
     'Access-Control-Max-Age': '300',
   })
   log('About to await...', pink)
-  await new Promise(ok => {
-    const delay = 1500 + 500 * Math.random()
-    const dc = Math.random()
-    log('dc=', dc)
-    if (dc < 0.999) {
-      setTimeout(ok, delay)
-    } else {
-      log('🪩 Simulating disconnect')
-    }
-  })
-  //await emulateLag()
+  await emulateLag()
   log('Await completed.', green)
 
   next()
@@ -76,7 +66,7 @@ function setTokenCookie(res, token) {
     httpOnly: true,
     sameSite: 'Strict',
     secure: process.env.NODE_ENV !== 'development',
-    maxAge: 5 * 60 * 1000
+    maxAge: 5 * 60 * 1000,
   })
 }
 
@@ -161,14 +151,12 @@ app
     res.set({ 'Access-Control-Allow-Credentials': 'true' })
 
     const candidate = req.body
-    log('Attempting to create ', blue, candidate)
 
     try {
       const claims = await createLogin(candidate)
-      log('Signing off on these claims: ', blue, claims)
       const signed = signToken(claims)
       setTokenCookie(res, signed)
-      res.json({ token: signed })
+      res.json(claims)
     } catch (e) {
       if (e.message.match('email already in use')) {
         res.json({ error: 'email already in use.' })
@@ -187,8 +175,13 @@ app
     log('Attempting login as ', email)
     const outcome = await requestToken(email, password)
     if (outcome) {
-      setTokenCookie(res, outcome)
-      return res.json({ token: outcome })
+      log('providing token and credentials from:', blue, outcome)
+      setTokenCookie(res, outcome.token)
+      return res.json({
+        uid: outcome.uid,
+        name: outcome.name,
+        email: outcome.email,
+      })
     }
 
     res.status(401).send({ error: 'Invalid credentials.' })
@@ -198,7 +191,7 @@ app
 
   // Set Access-Control-Allow-Origin, Access-Control-Allow-Credentials,
   // and extract verified fields from cookie token:
-  .use('*', acao, identifySource)
+  .use('*', acao, identifyCredentials)
   .use('*', (req, res, next) => {
     if (req.verified.expired) {
       return res.status(401).json({ error: 'Token expired.' })
@@ -242,7 +235,6 @@ app
 
   // notes routes
   .get('/notes/:id', (req, res) => {
-    res.set({ 'Access-Control-Allow-Credentials': 'true' })
     // Validation: author = <bearer>, handled in query
     getNote({ noteId: req.params.id, authorId: req.verified.uid })
       .then(user => res.json(user))
@@ -250,7 +242,6 @@ app
   })
 
   .put('/notes/:id', (req, res) => {
-    res.set({ 'Access-Control-Allow-Credentials': 'true' })
     log('Applying updates: ', yellow, req.body.content, ', ', req.body.title)
     // Validation: author = <bearer>, handled in query
     updateNote({

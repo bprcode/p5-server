@@ -10,7 +10,7 @@ async function matchCredentials(email, password) {
     const record = await getUserByEmail(email)
 
     if (await bcrypt.compare(password, record.hash)) {
-      return record
+      return { uid: record.uid, name: record.name, email: record.email }
     }
   } catch (e) {}
 
@@ -98,7 +98,7 @@ async function addMockUser() {
 
 async function getUserByEmail(email) {
   const result = await pool.query(
-    'SELECT * FROM logins WHERE email ILIKE $1::text',
+    'SELECT uid, name, email, hash FROM logins WHERE email ILIKE $1::text',
     [email]
   )
   if (!result.rows.length) {
@@ -128,7 +128,7 @@ async function addNote({ author, content, title }) {
   return result.rows[0]
 }
 
-async function getNote({noteId, authorId}) {
+async function getNote({ noteId, authorId }) {
   const result = await pool.query(
     'SELECT * FROM notes WHERE note_id = $1::text AND author_id = $2::text',
     [noteId, authorId]
