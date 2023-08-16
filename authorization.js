@@ -7,19 +7,15 @@ const { matchCredentials } = require('./database')
  * If verified, store the claims in req.verified.
  */
 const identifySource = async (req, res, next) => {
-  log('req.verified was initially ', blue, req.verified)
-  if (!req.headers.authorization) {
-    log('👻 No authorization provided. Assigning empty record.')
-    req.verified = {}
-    return next()
+  res.set({ 'Access-Control-Allow-Credentials': 'true' })
+
+  if (!req.cookies.token) {
+    return res.status(401).json({ error: 'No identification provided.'})
   }
 
   // Otherwise, validate the token:
   try {
-    // log('identifying source of ', req.method, ' to ', req.originalUrl)
-    const bearer = req.headers.authorization.split(/bearer /i)[1]
-
-    const payload = jwt.verify(bearer, process.env.JWT_SECRET, {
+    const payload = jwt.verify(req.cookies.token, process.env.JWT_SECRET, {
       algorithms: ['HS512'],
     })
 
@@ -28,7 +24,7 @@ const identifySource = async (req, res, next) => {
 
     next()
   } catch (e) {
-    req.verified = {}
+    req.verified = Object.create(null)
     if (e.message === 'jwt expired') { req.verified.expired = true }
     log('❌ Verification failed: ', pink, e.message)
     log('Assigning empty record.')

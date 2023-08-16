@@ -71,6 +71,15 @@ async function acaoNoLag(req, res, next) {
   next()
 }
 
+function setTokenCookie(res, token) {
+  return res.cookie('token', token, {
+    httpOnly: true,
+    sameSite: 'Strict',
+    secure: process.env.NODE_ENV !== 'development',
+    maxAge: 5 * 60 * 1000
+  })
+}
+
 app
   .disable('x-powered-by')
   .use(express.json())
@@ -98,12 +107,13 @@ app
     const cid = (Math.random() * 100).toFixed(0)
     log(`Sending cookie ${cid} 🍪`)
     res.set({ 'Access-Control-Allow-Credentials': 'true' })
-    res.set({
-      'Set-Cookie':
-        `chocolate=tasty` +
-        ` ${cid};` +
-        ` Max-Age=120; SameSite=Strict; HttpOnly`,
-    })
+    // res.set({
+    //   'Set-Cookie':
+    //     `chocolate=tasty` +
+    //     ` ${cid};` +
+    //     ` Max-Age=120; SameSite=Strict; HttpOnly`,
+    // })
+    setTokenCookie(res, 'strawberry')
     res.send('chocolate chip')
   })
   .get('/check', acao, (req, res) => {
@@ -115,23 +125,32 @@ app
   })
 
   .options('/register', acao, async (req, res) => {
-    res.set({ 'Access-Control-Allow-Headers': 'Content-Type' })
+    res.set({
+      'Access-Control-Allow-Headers': 'Content-Type',
+      'Access-Control-Allow-Credentials': 'true',
+    })
     res.send()
   })
 
   .options('/login', acao, async (req, res) => {
-    res.set({ 'Access-Control-Allow-Headers': 'Content-Type' })
+    res.set({
+      'Access-Control-Allow-Headers': 'Content-Type',
+      'Access-Control-Allow-Credentials': 'true',
+    })
     res.send()
   })
 
   .options('/users/:id/notebook', acao, async (req, res) => {
-    res.set({ 'Access-Control-Allow-Headers': 'Content-Type, Authorization' })
+    res.set({
+      'Access-Control-Allow-Credentials': 'true',
+    })
     res.send()
   })
 
   .options('/notes/:id', acao, async (req, res) => {
     res.set({
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Allow-Headers': 'Content-Type',
+      'Access-Control-Allow-Credentials': 'true',
       'Access-Control-Allow-Methods': 'PUT',
     })
     res.send()
@@ -139,12 +158,16 @@ app
 
   // Create a new user
   .post('/register', acao, async (req, res) => {
+    res.set({ 'Access-Control-Allow-Credentials': 'true' })
+
     const candidate = req.body
     log('Attempting to create ', blue, candidate)
 
     try {
       const claims = await createLogin(candidate)
+      log('Signing off on these claims: ', blue, claims)
       const signed = signToken(claims)
+      setTokenCookie(res, signed)
       res.json({ token: signed })
     } catch (e) {
       if (e.message.match('email already in use')) {
@@ -155,37 +178,27 @@ app
     }
   })
 
-  // Retrieve a bearer token
+  // Retrieve an identity token
   .post('/login', acaoNoLag, async (req, res) => {
+    res.set({ 'Access-Control-Allow-Credentials': 'true' })
+
     const { email, password } = req.body
     log(new Date().toLocaleTimeString(), ' Received login post request', pink)
     log('Attempting login as ', email)
     const outcome = await requestToken(email, password)
     if (outcome) {
+      setTokenCookie(res, outcome)
       return res.json({ token: outcome })
     }
 
     res.status(401).send({ error: 'Invalid credentials.' })
   })
 
-  .options('/mock', acao, (req, res) => {
-    log('Preflight request received: ', yellow, req.originalUrl)
-    res.set({
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    })
-    res.send()
-  })
-
-  .get('/ping', acao, (req, res) => {
-    log('Got ping request with headers:', blue)
-    log(req.headers)
-
-    res.send(moo() + ' pong!')
-  })
-
   // SECURED ROUTES ___________________________________________________________
 
-  .use('*', identifySource)
+  // Set Access-Control-Allow-Origin, Access-Control-Allow-Credentials,
+  // and extract verified fields from cookie token:
+  .use('*', acao, identifySource)
   .use('*', (req, res, next) => {
     if (req.verified.expired) {
       return res.status(401).json({ error: 'Token expired.' })
@@ -194,7 +207,7 @@ app
   })
 
   // users routes
-  .get('/users/:id/notebook', acao, async (req, res) => {
+  .get('/users/:id/notebook', async (req, res) => {
     // Validation: path-id = <bearer>
     if (req.verified.uid !== req.params.id) {
       log('denied: ', blue, req.verified.uid, ' !== ', yellow, req.params.id)
@@ -205,7 +218,7 @@ app
       .catch(error => res.status(500).json({ error: error.message }))
   })
 
-  .post('/users/:id/notebook', acao, async (req, res) => {
+  .post('/users/:id/notebook', async (req, res) => {
     // Validation: path-id = <bearer>
     if (req.verified.uid !== req.params.id) {
       log('denied: ', blue, req.verified.uid, ' !== ', yellow, req.params.id)
@@ -228,14 +241,16 @@ app
   })
 
   // notes routes
-  .get('/notes/:id', acao, (req, res) => {
+  .get('/notes/:id', (req, res) => {
+    res.set({ 'Access-Control-Allow-Credentials': 'true' })
     // Validation: author = <bearer>, handled in query
     getNote({ noteId: req.params.id, authorId: req.verified.uid })
       .then(user => res.json(user))
       .catch(error => res.status(401).json({ error: error.message }))
   })
 
-  .put('/notes/:id', acao, (req, res) => {
+  .put('/notes/:id', (req, res) => {
+    res.set({ 'Access-Control-Allow-Credentials': 'true' })
     log('Applying updates: ', yellow, req.body.content, ', ', req.body.title)
     // Validation: author = <bearer>, handled in query
     updateNote({

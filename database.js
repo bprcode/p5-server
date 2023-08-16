@@ -37,13 +37,13 @@ async function createLogin(candidate) {
 
   const uid = await generateUnusedId('logins', 'uid')
 
-  await pool.query(
+  const outcome = await pool.query(
     'INSERT INTO logins (email, name, hash, uid) VALUES ' +
-      '($1::text, $2::text, $3::text, $4::text)',
+      '($1::text, $2::text, $3::text, $4::text) RETURNING email, name, uid',
     [candidate.email, candidate.name, hash, uid]
   )
 
-  return { email: candidate.email, name: candidate.name }
+  return outcome.rows[0]
 }
 
 function base62NoO(bigNumber) {
