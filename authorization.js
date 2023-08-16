@@ -8,6 +8,7 @@ const { matchCredentials } = require('./database')
  */
 const identifyCredentials = async (req, res, next) => {
   if (!req.cookies.token) {
+    log('❔ No cookie.')
     return res.status(401).json({ error: 'No identification provided.' })
   }
 
@@ -22,12 +23,17 @@ const identifyCredentials = async (req, res, next) => {
 
     next()
   } catch (e) {
+    log('❌ Verification failed: ', pink, e.message)
     req.verified = Object.create(null)
+
     if (e.message === 'jwt expired') {
       req.verified.expired = true
+
+      // For any other reason...
+    } else {
+      req.verified.error = 'Invalid credentials.'
     }
-    log('❌ Verification failed: ', pink, e.message)
-    log('Assigning empty record.')
+
     return next()
   }
 }

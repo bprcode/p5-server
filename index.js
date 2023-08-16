@@ -68,7 +68,7 @@ function setTokenCookie(res, token) {
     httpOnly: true,
     sameSite: 'Strict',
     secure: process.env.NODE_ENV !== 'development',
-    maxAge: 5 * 60 * 1000,
+    maxAge: 2 * 60 * 1000,
   })
 }
 
@@ -88,12 +88,23 @@ app
     next()
   })
 
+  // PUBLIC ROUTES ____________________________________________________________
+
   .get('/', (req, res) => {
     res.send('Welcome to the server')
     log('Served: ', req.originalUrl, blue)
   })
 
-  // PUBLIC ROUTES ____________________________________________________________
+  .get('/me', acao, identifyCredentials, (req, res) => {
+    log('🙋‍♀️ identifying user')
+    if (req.verified.expired) {
+      return res.json({ error: 'Expired credentials' })
+    } else if (req.verified.error) {
+      return res.status(400).json(req.verified)
+    }
+
+    res.json(req.verified)
+  })
 
   .get('/cookie', acao, (req, res) => {
     const cid = (Math.random() * 100).toFixed(0)
@@ -181,13 +192,15 @@ app
 
   // Expire an identity token
   .delete('/login', acao, (req, res) => {
-    log('login-delete received', pink)
-    return res.cookie('token', '', {
-      httpOnly: true,
-      sameSite: 'Strict',
-      secure: process.env.NODE_ENV !== 'development',
-      expires: new Date(0)
-    }).json({})
+    log('🧼 sending login-delete', pink)
+    return res
+      .cookie('token', '', {
+        httpOnly: true,
+        sameSite: 'Strict',
+        secure: process.env.NODE_ENV !== 'development',
+        expires: new Date(0),
+      })
+      .json({})
   })
 
   // SECURED ROUTES ___________________________________________________________
