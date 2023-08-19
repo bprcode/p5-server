@@ -2,6 +2,8 @@ require('@bprcode/handy')
 const jwt = require('jsonwebtoken')
 const { matchCredentials } = require('./database')
 
+const cookieSeconds = 60 * 0.5
+
 /**
  * Extract and verify the request's bearer token.
  * If verified, store the claims in req.verified.
@@ -61,10 +63,10 @@ const signToken = claims => {
 
   const token = jwt.sign(sanitized, process.env.JWT_SECRET, {
     algorithm: 'HS512',
-    expiresIn: '10m',
+    expiresIn: cookieSeconds,
   })
 
   return token
 }
 
-module.exports = { identifyCredentials, requestToken, signToken }
+module.exports = { identifyCredentials, requestToken, signToken, cookieSeconds }

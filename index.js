@@ -17,6 +17,7 @@ const {
   identifyCredentials,
   requestToken,
   signToken,
+  cookieSeconds,
 } = require('./authorization.js')
 
 let emulateLag = async () => {}
@@ -68,7 +69,7 @@ function setTokenCookie(res, token) {
     httpOnly: true,
     sameSite: 'Strict',
     secure: process.env.NODE_ENV !== 'development',
-    maxAge: 2 * 60 * 1000,
+    maxAge: cookieSeconds * 1000,
   })
 }
 
@@ -106,26 +107,6 @@ app
     res.json(req.verified)
   })
 
-  .get('/cookie', acao, (req, res) => {
-    const cid = (Math.random() * 100).toFixed(0)
-    log(`Sending cookie ${cid} 🍪`)
-    // res.set({
-    //   'Set-Cookie':
-    //     `chocolate=tasty` +
-    //     ` ${cid};` +
-    //     ` Max-Age=120; SameSite=Strict; HttpOnly`,
-    // })
-    setTokenCookie(res, 'strawberry')
-    res.send('chocolate chip')
-  })
-
-  .get('/check', acao, (req, res) => {
-    log('☑️ Checking headers:')
-    log(req.headers)
-    log('req.cookies = ', req.cookies)
-    res.send(':)')
-  })
-
   .options('/register', acao, async (req, res) => {
     res.set({
       'Access-Control-Allow-Headers': 'Content-Type',
@@ -161,7 +142,7 @@ app
       const claims = await createLogin(candidate)
       const signed = signToken(claims)
       setTokenCookie(res, signed)
-      res.json(claims)
+      res.json({ ...claims, expiry: cookieSeconds * 1000 })
     } catch (e) {
       if (e.message.match('email already in use')) {
         res.status(400).json({ error: 'email already in use.' })
@@ -184,6 +165,7 @@ app
         uid: outcome.uid,
         name: outcome.name,
         email: outcome.email,
+        expiry: cookieSeconds * 1000,
       })
     }
 
