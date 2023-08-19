@@ -17,7 +17,7 @@ async function matchCredentials(email, password) {
   return null
 }
 
-async function createLogin(candidate) {
+async function registerLogin(candidate) {
   // Is the login available?
   const previous = await pool.query(
     'SELECT * FROM logins WHERE email ILIKE $1::text',
@@ -162,7 +162,7 @@ async function listNotes(author) {
 }
 
 module.exports = {
-  createLogin,
+  registerLogin,
   getUser,
   getNote,
   listNotes,

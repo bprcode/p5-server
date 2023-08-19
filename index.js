@@ -6,7 +6,7 @@ const cookieParser = require('cookie-parser')
 require('express-async-errors')
 const port = 3000
 const {
-  createLogin,
+  registerLogin,
   getNote,
   addNote,
   updateNote,
@@ -136,20 +136,29 @@ app
 
   // Create a new user
   .post('/register', acao, async (req, res) => {
-    const candidate = req.body
+    const { email, password } = req.body
+    log('Attempting to create or use login: ', pink, email)
 
     try {
-      const claims = await createLogin(candidate)
-      const signed = signToken(claims)
-      setTokenCookie(res, signed)
-      res.json({ ...claims, expiry: cookieSeconds * 1000 })
-    } catch (e) {
-      if (e.message.match('email already in use')) {
-        res.status(400).json({ error: 'email already in use.' })
-      } else {
-        res.status(500).json({ error: 'Server error.' })
-      }
+      // Attempt to register an account:
+      await registerLogin(req.body)
+    } catch (e) {}
+
+    // Regardless of success, try to log in using the provided credentials:
+    const outcome = await requestToken(email, password)
+    if (outcome) {
+      log('Successful creation or use: ', green, email)
+      setTokenCookie(res, outcome.token)
+      return res.json({
+        uid: outcome.uid,
+        name: outcome.name,
+        email: outcome.email,
+        expiry: cookieSeconds * 1000,
+      })
     }
+
+    log('Unable to use: ', pink, email)
+    res.status(400).json({ error: 'email already in use.' })
   })
 
   // Retrieve an identity token
