@@ -2,7 +2,7 @@ require('@bprcode/handy')
 const jwt = require('jsonwebtoken')
 const { matchCredentials } = require('./database')
 
-const cookieSeconds = 60 * 0.5
+const cookieSeconds = 60 * 3
 
 /**
  * Extract and verify the request's bearer token.
@@ -23,6 +23,14 @@ const identifyCredentials = async (req, res, next) => {
     // log('🗝️ Using values from payload: ', payload)
     req.verified = payload
 
+    if ((req.verified.exp - Date.now() / 1000) / cookieSeconds < 0.5) {
+      log(
+        `⌛ time getting low, refreshing ` +
+          `(${req.verified.exp - Date.now() / 1000}s remaining)`
+      )
+      refreshCookie(res, req.verified)
+    }
+
     next()
   } catch (e) {
     log('❌ Verification failed: ', pink, e.message)
@@ -40,6 +48,14 @@ const identifyCredentials = async (req, res, next) => {
   }
 }
 
+/**
+ * Generate a fresh session cookie -- assumes claims have been verified
+ */
+function refreshCookie(res, verified) {
+  const token = signToken(verified)
+  setTokenCookie(res, token)
+}
+
 // Return a bearer token if the password matches the stored hash
 const requestToken = async (email, password) => {
   log('requesting token for ', email)
@@ -54,6 +70,9 @@ const requestToken = async (email, password) => {
   return false
 }
 
+/**
+ * Produce a signed token -- assumes claims have been verified
+ */
 const signToken = claims => {
   const sanitized = {
     email: claims.email,
@@ -69,4 +88,18 @@ const signToken = claims => {
   return token
 }
 
-module.exports = { identifyCredentials, requestToken, signToken, cookieSeconds }
+function setTokenCookie(res, token) {
+  return res.cookie('token', token, {
+    httpOnly: true,
+    sameSite: 'Strict',
+    secure: process.env.NODE_ENV !== 'development',
+    maxAge: cookieSeconds * 1000,
+  })
+}
+
+module.exports = {
+  identifyCredentials,
+  requestToken,
+  cookieSeconds,
+  setTokenCookie,
+}

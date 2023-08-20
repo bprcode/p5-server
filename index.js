@@ -17,6 +17,7 @@ const {
   identifyCredentials,
   requestToken,
   cookieSeconds,
+  setTokenCookie,
 } = require('./authorization.js')
 
 let emulateLag = async () => {}
@@ -61,15 +62,6 @@ async function acaoNoLag(req, res, next) {
   })
 
   next()
-}
-
-function setTokenCookie(res, token) {
-  return res.cookie('token', token, {
-    httpOnly: true,
-    sameSite: 'Strict',
-    secure: process.env.NODE_ENV !== 'development',
-    maxAge: cookieSeconds * 1000,
-  })
 }
 
 app
