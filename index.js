@@ -33,7 +33,7 @@ if (process.env.NODE_ENV === 'development') {
       const delay = 1500 + 500 * Math.random()
       const dc = Math.random()
       log('dc=', dc)
-      if (dc < 0.9) {
+      if (dc < 0.7) {
         setTimeout(ok, delay)
       } else {
         log('🪩 Simulating disconnect')
@@ -151,7 +151,7 @@ app
         uid: outcome.uid,
         name: outcome.name,
         email: outcome.email,
-        expiry: cookieSeconds * 1000,
+        ttl: cookieSeconds * 1000,
       })
     }
 
@@ -172,7 +172,7 @@ app
         uid: outcome.uid,
         name: outcome.name,
         email: outcome.email,
-        expiry: cookieSeconds * 1000,
+        ttl: cookieSeconds * 1000,
       })
     }
 
