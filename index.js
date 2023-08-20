@@ -16,7 +16,6 @@ require('@bprcode/handy')
 const {
   identifyCredentials,
   requestToken,
-  signToken,
   cookieSeconds,
 } = require('./authorization.js')
 
@@ -96,16 +95,23 @@ app
     log('Served: ', req.originalUrl, blue)
   })
 
-  .get('/me', acao, identifyCredentials, (req, res) => {
-    log('🙋‍♀️ identifying user')
-    if (req.verified.expired) {
-      return res.json({ error: 'Expired credentials' })
-    } else if (req.verified.error) {
-      return res.status(400).json(req.verified)
+  // Let the client know the state of its cookie:
+  .get(
+    '/me',
+    acao,
+    (req, res, next) => {
+      if (!req.cookies.token) {
+        log('User had no cookie; must login to proceed.')
+        return res.status(400).json({ notice: 'Awaiting login.' })
+      }
+      next()
+    },
+    identifyCredentials,
+    (req, res) => {
+      log('🙋‍♀️ identifying user')
+      res.json(req.verified)
     }
-
-    res.json(req.verified)
-  })
+  )
 
   .options('/register', acao, async (req, res) => {
     res.set({
