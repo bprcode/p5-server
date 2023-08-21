@@ -8,11 +8,9 @@ const port = 3000
 const {
   registerLogin,
   getNote,
-  addNote,
   updateNote,
   listNotes,
-  checkIdempotency,
-  recordIdempotency,
+  addNoteIdempotent,
 } = require('./database.js')
 require('@bprcode/handy')
 const {
@@ -123,6 +121,10 @@ app
   })
 
   .options('/users/:id/notebook', acao, async (req, res) => {
+    res.set({
+      'Access-Control-Allow-Headers': 'Content-Type',
+      //'Access-Control-Allow-Methods': 'DELETE',
+    })
     res.send()
   })
 
@@ -227,6 +229,17 @@ app
     }
 
     try {
+      const outcome = await addNoteIdempotent(req.body.key, req.verified.uid, {
+        title: req.body.title,
+        content: req.body.content,
+      })
+      res.json(outcome)
+    } catch (e) {
+      log('Unable to complete note creation. ', yellow, e.message)
+      res.status(500).json({ error: 'Unable to create note.' })
+    }
+    /*
+    try {
       // Use previous result if it exists
       const previous = await checkIdempotency(req.body.key, req.verified.uid)
       if (previous) {
@@ -245,7 +258,7 @@ app
     } catch (e) {
       log('⚠️ Error in idempotent transaction: ', yellow, e.message)
       res.status(500).json({ error: 'Unable to create record.' })
-    }
+    }*/
   })
 
   // notes routes

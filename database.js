@@ -65,12 +65,14 @@ function base62NoO(bigNumber) {
  * Generate a random unused base62 id of a specified length. Entity names
  * are unsanitized and must not be exposed to user input.
  */
-async function generateUnusedId(table, column, length = 8) {
+async function generateUnusedId(table, column, options) {
+  const length = options.length || 8
+  const enquirer = options.client || pool
   const min = 62n ** BigInt(length) + 1n
   while (true) {
     const uuid16 = crypto.randomUUID().replaceAll('-', '')
     const base62 = base62NoO(BigInt('0x' + uuid16) + min).slice(0, length)
-    const matches = await pool.query(
+    const matches = await enquirer.query(
       `SELECT * FROM ${table} WHERE ${column} = $1::text`,
       [base62]
     )
@@ -79,21 +81,6 @@ async function generateUnusedId(table, column, length = 8) {
       return base62
     }
   }
-}
-
-async function addMockUser() {
-  const uid = await generateUnusedId('logins', 'uid')
-  console.log('inserting mock uid=', uid)
-
-  await pool.query(
-    'INSERT INTO logins (uid, email, hash) ' +
-      'VALUES ($1::text, $2::text, $3::text)',
-    [
-      uid,
-      `mock${crypto.randomUUID().replaceAll('-', '').slice(0, 4)}@fake.net`,
-      '12345678',
-    ]
-  )
 }
 
 async function getUserByEmail(email) {
@@ -115,16 +102,6 @@ async function getUser(id) {
   if (!result.rows.length) {
     throw Error('User not found.')
   }
-  return result.rows[0]
-}
-
-async function addNote({ author, content, title }) {
-  const noteId = await generateUnusedId('notes', 'note_id')
-  const result = await pool.query(
-    'INSERT INTO notes (note_id, author_id, content, title) ' +
-      'VALUES ($1::text, $2::text, $3::text, $4::text) RETURNING *',
-    [noteId, author, content, title]
-  )
   return result.rows[0]
 }
 
@@ -161,27 +138,55 @@ async function listNotes(author) {
   return result.rows
 }
 
-async function recordIdempotency(key, uid, outcome) {
-  const result = await pool.query(
-    'INSERT INTO idempotency (idem_key, uid, outcome) '+
-    'VALUES ($1::text, $2::text, $3::jsonb) RETURNING outcome',
-    [key, uid, outcome]
-  )
-  if (!result.rows.length) {
-    throw Error('Failed to record idempotent event.')
+async function addNoteIdempotent(key, uid, note) {
+  log('debug -- placeholder -- periodically clean up old keys here')
+  const client = await pool.connect()
+
+  try {
+    await client.query('BEGIN')
+
+    // If a previous result exists, return it
+    const previous = await client
+      .query(
+        'SELECT * FROM idempotency WHERE ' +
+          'idem_key = $1::text AND uid = $2::text',
+        [key, uid]
+      )
+      .then(result => result.rows[0])
+
+    if (previous) {
+      log('already had note: ', key, uid)
+      return previous.outcome
+    }
+
+    // Otherwise, create the note
+    const noteId = await generateUnusedId('notes', 'note_id', { client })
+    const created = await client
+      .query(
+        'INSERT INTO notes (note_id, author_id, content, title) ' +
+          'VALUES ($1::text, $2::text, $3::text, $4::text) RETURNING *',
+        [noteId, uid, note.content, note.title]
+      )
+      .then(result => result.rows[0])
+
+    // Record the result in the idempotency table
+    await client.query(
+      'INSERT INTO idempotency (idem_key, uid, outcome) ' +
+        'VALUES ($1::text, $2::text, $3::jsonb) RETURNING outcome',
+      [key, uid, created]
+    )
+    await client.query('COMMIT')
+
+    log('>. Commit reached. Returning.', blue)
+    return created
+  } catch (e) {
+    await client.query('ROLLBACK')
+    log('<< rolling back...', yellow)
+    throw e
+  } finally {
+    log('🧹 releasing client')
+    client.release()
   }
-  return result.rows[0].outcome
-}
-
-async function checkIdempotency(key, uid) {
-  log('placeholder -- periodically clean up old keys here')
-
-  const result = await pool.query(
-    'SELECT * FROM idempotency WHERE idem_key = $1::text AND uid = $2::text',
-    [key, uid]
-  )
-
-  return result.rows[0]
 }
 
 module.exports = {
@@ -190,9 +195,6 @@ module.exports = {
   getNote,
   listNotes,
   matchCredentials,
-  addMockUser,
-  addNote,
   updateNote,
-  recordIdempotency,
-  checkIdempotency,
+  addNoteIdempotent,
 }
