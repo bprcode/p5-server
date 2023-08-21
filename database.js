@@ -111,7 +111,7 @@ async function getNote({ noteId, authorId }) {
     [noteId, authorId]
   )
   if (!result.rows.length) {
-    throw Error('No matching note found.')
+    throw Error('No match found.')
   }
   return result.rows[0]
 }
@@ -119,8 +119,20 @@ async function getNote({ noteId, authorId }) {
 async function updateNote({ content, title, noteId, authorId }) {
   const result = await pool.query(
     'UPDATE notes SET content = $1::text, title = $2::text WHERE ' +
-      'note_id = $3::text AND author_id = $4::text RETURNING *',
+      'note_id = $3::text AND author_id = $4::text RETURNING ' +
+      'note_id, title, content',
     [content, title, noteId, authorId]
+  )
+  if (!result.rows.length) {
+    throw Error('No match found.')
+  }
+  return result.rows[0]
+}
+
+async function deleteNote({ noteId, authorId }) {
+  const result = await pool.query(
+    'DELETE FROM notes WHERE note_id = $1::text AND author_id = $2::text ',
+    [noteId, authorId]
   )
   if (!result.rows.length) {
     throw Error('No match found.')
@@ -141,6 +153,8 @@ async function listNotes(author) {
 
 async function addNoteIdempotent(key, uid, note) {
   log('debug -- placeholder -- periodically clean up old keys here')
+  const logId = Math.random()
+  console.time(`Add idempotent ${logId}`)
   const client = await pool.connect()
 
   try {
@@ -185,7 +199,7 @@ async function addNoteIdempotent(key, uid, note) {
     log('<< rolling back...', yellow)
     throw e
   } finally {
-    log('🧹 releasing client')
+    console.timeEnd(`Add idempotent ${logId}`)
     client.release()
   }
 }
@@ -197,5 +211,6 @@ module.exports = {
   listNotes,
   matchCredentials,
   updateNote,
+  deleteNote,
   addNoteIdempotent,
 }

@@ -9,8 +9,9 @@ const {
   registerLogin,
   getNote,
   updateNote,
-  listNotes,
+  deleteNote,
   addNoteIdempotent,
+  listNotes,
 } = require('./database.js')
 require('@bprcode/handy')
 const {
@@ -123,7 +124,6 @@ app
   .options('/users/:id/notebook', acao, async (req, res) => {
     res.set({
       'Access-Control-Allow-Headers': 'Content-Type',
-      //'Access-Control-Allow-Methods': 'DELETE',
     })
     res.send()
   })
@@ -131,7 +131,7 @@ app
   .options('/notes/:id', acao, async (req, res) => {
     res.set({
       'Access-Control-Allow-Headers': 'Content-Type',
-      'Access-Control-Allow-Methods': 'PUT',
+      'Access-Control-Allow-Methods': 'PUT, DELETE',
     })
     res.send()
   })
@@ -221,44 +221,22 @@ app
   })
 
   .post('/users/:id/notebook', async (req, res) => {
-    // Validation:  path-id = <bearer>
+    // Validation:  path-id = <bearer>,
     //              body.key exists
     if (req.verified.uid !== req.params.id || !req.body.key) {
       log('denied note creation in ', pink, req.params.id)
       return res.status(401).json({ error: 'Permission denied.' })
     }
 
-    try {
-      const outcome = await addNoteIdempotent(req.body.key, req.verified.uid, {
-        title: req.body.title,
-        content: req.body.content,
+    addNoteIdempotent(req.body.key, req.verified.uid, {
+      title: req.body.title,
+      content: req.body.content,
+    })
+      .then(outcome => res.json(outcome))
+      .catch(e => {
+        log('Unable to complete note creation. ', yellow, e.message)
+        res.status(500).json({ error: 'Unable to create note.' })
       })
-      res.json(outcome)
-    } catch (e) {
-      log('Unable to complete note creation. ', yellow, e.message)
-      res.status(500).json({ error: 'Unable to create note.' })
-    }
-    /*
-    try {
-      // Use previous result if it exists
-      const previous = await checkIdempotency(req.body.key, req.verified.uid)
-      if (previous) {
-        log('idempotent request already existed', blue)
-        return res.json(previous.outcome)
-      }
-
-      const note = await addNote({
-        author: req.params.id,
-        content: req.body.content,
-        title: req.body.title,
-      })
-
-      await recordIdempotency(req.body.key, req.verified.uid, note)
-      return res.json(note)
-    } catch (e) {
-      log('⚠️ Error in idempotent transaction: ', yellow, e.message)
-      res.status(500).json({ error: 'Unable to create record.' })
-    }*/
   })
 
   // notes routes
@@ -270,7 +248,6 @@ app
   })
 
   .put('/notes/:id', (req, res) => {
-    log('Applying updates: ', yellow, req.body.content, ', ', req.body.title)
     // Validation: author = <bearer>, handled in query
     updateNote({
       noteId: req.params.id,
@@ -279,7 +256,17 @@ app
       title: req.body.title,
     })
       .then(result => res.json(result))
-      .catch(error => res.status(401).json({ error: error.message }))
+      .catch(error => res.status(401).json({ error: 'Update denied.' }))
+  })
+
+  .delete('/notes/:id', async (req, res) => {
+    // Validation: author = <bearer>, handled in query
+    deleteNote({
+      noteId: req.params.id,
+      authorId: req.verified.uid,
+    })
+      .catch(e => {}) // no-op
+      .finally(() => res.json({ notice: 'Request received. '}))
   })
 
   .get('*', (req, res) => {
