@@ -161,6 +161,29 @@ async function listNotes(author) {
   return result.rows
 }
 
+async function recordIdempotency(key, uid, outcome) {
+  const result = await pool.query(
+    'INSERT INTO idempotency (idem_key, uid, outcome) '+
+    'VALUES ($1::text, $2::text, $3::jsonb) RETURNING outcome',
+    [key, uid, outcome]
+  )
+  if (!result.rows.length) {
+    throw Error('Failed to record idempotent event.')
+  }
+  return result.rows[0].outcome
+}
+
+async function checkIdempotency(key, uid) {
+  log('placeholder -- periodically clean up old keys here')
+
+  const result = await pool.query(
+    'SELECT * FROM idempotency WHERE idem_key = $1::text AND uid = $2::text',
+    [key, uid]
+  )
+
+  return result.rows[0]
+}
+
 module.exports = {
   registerLogin,
   getUser,
@@ -170,4 +193,6 @@ module.exports = {
   addMockUser,
   addNote,
   updateNote,
+  recordIdempotency,
+  checkIdempotency,
 }

@@ -11,6 +11,8 @@ const {
   addNote,
   updateNote,
   listNotes,
+  checkIdempotency,
+  recordIdempotency,
 } = require('./database.js')
 require('@bprcode/handy')
 const {
@@ -33,7 +35,7 @@ if (process.env.NODE_ENV === 'development') {
       const delay = 1500 + 500 * Math.random()
       const dc = Math.random()
       log('dc=', dc)
-      if (dc < 0.7) {
+      if (dc < 0.9) {
         setTimeout(ok, delay)
       } else {
         log('🪩 Simulating disconnect')
@@ -217,25 +219,33 @@ app
   })
 
   .post('/users/:id/notebook', async (req, res) => {
-    // Validation: path-id = <bearer>
-    if (req.verified.uid !== req.params.id) {
-      log('denied: ', blue, req.verified.uid, ' !== ', yellow, req.params.id)
+    // Validation:  path-id = <bearer>
+    //              body.key exists
+    if (req.verified.uid !== req.params.id || !req.body.key) {
+      log('denied note creation in ', pink, req.params.id)
       return res.status(401).json({ error: 'Permission denied.' })
     }
 
-    addNote({
-      author: req.params.id,
-      content: req.body.content,
-      title: req.body.title,
-    })
-      .then(posted => {
-        log('successfully returned ', posted)
-        res.json(posted)
+    try {
+      // Use previous result if it exists
+      const previous = await checkIdempotency(req.body.key, req.verified.uid)
+      if (previous) {
+        log('idempotent request already existed', blue)
+        return res.json(previous.outcome)
+      }
+
+      const note = await addNote({
+        author: req.params.id,
+        content: req.body.content,
+        title: req.body.title,
       })
-      .catch(error => {
-        log('insert error: ', error.message)
-        res.json({ error: error.message })
-      })
+
+      await recordIdempotency(req.body.key, req.verified.uid, note)
+      return res.json(note)
+    } catch (e) {
+      log('⚠️ Error in idempotent transaction: ', yellow, e.message)
+      res.status(500).json({ error: 'Unable to create record.' })
+    }
   })
 
   // notes routes

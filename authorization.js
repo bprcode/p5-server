@@ -2,7 +2,7 @@ require('@bprcode/handy')
 const jwt = require('jsonwebtoken')
 const { matchCredentials } = require('./database')
 
-const cookieSeconds = 60 * 5
+const cookieSeconds = 60 * 2
 
 /**
  * Extract and verify the request's bearer token.
