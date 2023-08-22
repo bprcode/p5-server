@@ -232,7 +232,7 @@ app
       title: req.body.title,
       content: req.body.content,
     })
-      .then(outcome => res.json(outcome))
+      .then(outcome => res.status(201).json(outcome))
       .catch(e => {
         log('Unable to complete note creation. ', yellow, e.message)
         res.status(500).json({ error: 'Unable to create note.' })
@@ -265,8 +265,8 @@ app
       noteId: req.params.id,
       authorId: req.verified.uid,
     })
-      .catch(e => {}) // no-op
-      .finally(() => res.json({ notice: 'Request received. '}))
+      .catch(() => {}) // no-op
+      .finally(() => res.status(200).json({ notice: 'Request received.'}))
   })
 
   .get('*', (req, res) => {
