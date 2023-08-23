@@ -1,0 +1,86 @@
+
+--
+-- Name: idempotency; Type: TABLE; Schema: public; Owner: basedadmin
+--
+
+CREATE TABLE public.idempotency (
+    idem_key text NOT NULL,
+    uid text NOT NULL,
+    outcome jsonb,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+
+ALTER TABLE public.idempotency OWNER TO basedadmin;
+
+--
+-- Name: logins; Type: TABLE; Schema: public; Owner: basedadmin
+--
+
+CREATE TABLE public.logins (
+    email text NOT NULL,
+    name text,
+    hash text NOT NULL,
+    uid text DEFAULT gen_random_uuid() NOT NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+
+ALTER TABLE public.logins OWNER TO basedadmin;
+
+--
+-- Name: notes; Type: TABLE; Schema: public; Owner: basedadmin
+--
+
+CREATE TABLE public.notes (
+    note_id text NOT NULL,
+    author_id text,
+    content text,
+    title text,
+    summary text GENERATED ALWAYS AS (("substring"(content, 0, 80) || '...'::text)) STORED,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+
+ALTER TABLE public.notes OWNER TO basedadmin;
+
+
+--
+-- Name: idempotency idempotency_pkey; Type: CONSTRAINT; Schema: public; Owner: basedadmin
+--
+
+ALTER TABLE ONLY public.idempotency
+    ADD CONSTRAINT idempotency_pkey PRIMARY KEY (idem_key, uid);
+
+
+--
+-- Name: logins logins_email_key; Type: CONSTRAINT; Schema: public; Owner: basedadmin
+--
+
+ALTER TABLE ONLY public.logins
+    ADD CONSTRAINT logins_email_key UNIQUE (email);
+
+
+--
+-- Name: logins logins_pkey; Type: CONSTRAINT; Schema: public; Owner: basedadmin
+--
+
+ALTER TABLE ONLY public.logins
+    ADD CONSTRAINT logins_pkey PRIMARY KEY (uid);
+
+
+--
+-- Name: notes notes_pkey; Type: CONSTRAINT; Schema: public; Owner: basedadmin
+--
+
+ALTER TABLE ONLY public.notes
+    ADD CONSTRAINT notes_pkey PRIMARY KEY (note_id);
+
+
+--
+-- Name: notes notes_uid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: basedadmin
+--
+
+ALTER TABLE ONLY public.notes
+    ADD CONSTRAINT notes_uid_fkey FOREIGN KEY (author_id) REFERENCES public.logins(uid) ON UPDATE CASCADE ON DELETE CASCADE;
+

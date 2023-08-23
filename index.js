@@ -88,6 +88,10 @@ app
     log('Served: ', req.originalUrl, blue)
   })
 
+  .get('/hi', (req, res) => {
+    res.send()
+  })
+
   // Let the client know the state of its cookie:
   .get(
     '/me',
