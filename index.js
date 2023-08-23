@@ -70,6 +70,13 @@ app
   .use(express.text())
   .use(cookieParser())
 
+  // PUBLIC ROUTES ____________________________________________________________
+
+  .get('/hi', (req, res) => {
+    res.send()
+  })
+
+  // Use logging on subsequent routes:
   .use('*', (req, res, next) => {
     log(
       new Date().toLocaleTimeString(),
@@ -80,15 +87,9 @@ app
     next()
   })
 
-  // PUBLIC ROUTES ____________________________________________________________
-
   .get('/', (req, res) => {
     res.send('Welcome to the server')
     log('Served: ', req.originalUrl, blue)
-  })
-
-  .get('/hi', (req, res) => {
-    res.send()
   })
 
   // Let the client know the state of its cookie:
