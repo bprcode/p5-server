@@ -170,13 +170,13 @@ async function deleteOldIdempotencies() {
 }
 
 async function addNoteIdempotent(key, uid, note) {
-  log('debug -- placeholder -- periodically clean up old keys here')
   const logId = Math.random()
   console.time(`Add idempotent ${logId}`)
   const client = await pool.connect()
 
   // Periodically prune old records:
-  if (Math.random() < 0.2) {
+  if (Math.random() < 0.05) {
+    log('deleting old records')
     await deleteOldIdempotencies()
   }
 
