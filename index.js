@@ -4,7 +4,6 @@ const express = require('express')
 const app = express()
 const cookieParser = require('cookie-parser')
 require('express-async-errors')
-const port = 3000
 const {
   getNote,
   updateNote,
@@ -287,10 +286,7 @@ app
     log(err.stack)
   })
 
-const server = app.listen(port, () => {
+const server = app.listen(process.env.PORT || 3000, () => {
   const time = [new Date().toLocaleTimeString(), pink]
-  const listening = [
-    ' App listening on: http://localhost:' + server.address().port,
-  ]
-  log(...time, ...listening, ' ' + moo())
+  log(...time, ' App listening on: ', server.address(), ' ' + moo())
 })
