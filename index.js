@@ -6,12 +6,12 @@ const cookieParser = require('cookie-parser')
 require('express-async-errors')
 const port = 3000
 const {
-  registerLogin,
   getNote,
   updateNote,
   deleteNote,
   addNoteIdempotent,
   listNotes,
+  transactRegistration,
 } = require('./database.js')
 require('@bprcode/handy')
 const {
@@ -142,9 +142,12 @@ app
     log('Attempting to create or use login: ', pink, email)
 
     try {
-      // Attempt to register an account:
-      await registerLogin(req.body)
-    } catch (e) {}
+      // Attempt to register an account. Discard the result.
+      await transactRegistration(req.body)
+
+    } catch (e) {
+      log('encountered registration error: ', e.message)
+    }
 
     // Regardless of success, try to log in using the provided credentials:
     const outcome = await requestToken(email, password)

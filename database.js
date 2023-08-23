@@ -17,33 +17,43 @@ async function matchCredentials(email, password) {
   return null
 }
 
-async function registerLogin(candidate) {
-  // Is the login available?
-  const previous = await pool.query(
-    'SELECT * FROM logins WHERE email ILIKE $1::text',
-    [candidate.email]
-  )
+async function transactRegistration(candidate) {
+  const client = await pool.connect()
 
-  if (previous.rows.length > 0) {
-    log(candidate.email, pink, ' already taken')
-    throw Error('email already in use.')
+  try {
+    await client.query('BEGIN')
+    const previous = await client.query(
+      'SELECT email FROM logins WHERE email ilike $1::text',
+      [candidate.email]
+    )
+
+    if (previous.rows.length > 0) {
+      log(candidate.email, pink, ' already taken')
+      throw Error('email already in use.')
+    }
+
+    // If the email is not in use, create a login:
+    const hash = await bcrypt.hash(
+      candidate.password,
+      parseInt(process.env.SALT_ROUNDS)
+    )
+
+    const uid = await generateUnusedId('logins', 'uid', { client })
+
+    const outcome = await pool.query(
+      'INSERT INTO logins (email, name, hash, uid) VALUES ' +
+        '($1::text, $2::text, $3::text, $4::text) RETURNING email, name, uid',
+      [candidate.email, candidate.name, hash, uid]
+    )
+
+    await client.query('COMMIT')
+    return outcome.rows[0]
+  } catch (e) {
+    log(e.message)
+    await client.query('ROLLBACK')
+  } finally {
+    client.release()
   }
-
-  // Create the login:
-  const hash = await bcrypt.hash(
-    candidate.password,
-    parseInt(process.env.SALT_ROUNDS)
-  )
-
-  const uid = await generateUnusedId('logins', 'uid')
-
-  const outcome = await pool.query(
-    'INSERT INTO logins (email, name, hash, uid) VALUES ' +
-      '($1::text, $2::text, $3::text, $4::text) RETURNING email, name, uid',
-    [candidate.email, candidate.name, hash, uid]
-  )
-
-  return outcome.rows[0]
 }
 
 function base62NoO(bigNumber) {
@@ -65,7 +75,7 @@ function base62NoO(bigNumber) {
  * Generate a random unused base62 id of a specified length. Entity names
  * are unsanitized and must not be exposed to user input.
  */
-async function generateUnusedId(table, column, options) {
+async function generateUnusedId(table, column, options = {}) {
   const length = options.length || 8
   const enquirer = options.client || pool
   const min = 62n ** BigInt(length) + 1n
@@ -143,12 +153,20 @@ async function deleteNote({ noteId, authorId }) {
 async function listNotes(author) {
   log('getting note list for ', blue, author)
   const result = await pool.query(
-    'SELECT note_id, title, summary FROM notes WHERE author_id = $1::text '
-    + 'ORDER BY created_at',
+    'SELECT note_id, title, summary FROM notes WHERE author_id = $1::text ' +
+      'ORDER BY created_at',
     [author]
   )
 
   return result.rows
+}
+
+async function deleteOldIdempotencies() {
+  const recycled = await pool.query(
+    `DELETE FROM idempotency WHERE ` +
+      `(current_timestamp - created_at) > INTERVAL '1 day' RETURNING *`
+  )
+  log('♻️ Removed ', recycled.rows.length, ' old records.')
 }
 
 async function addNoteIdempotent(key, uid, note) {
@@ -156,6 +174,11 @@ async function addNoteIdempotent(key, uid, note) {
   const logId = Math.random()
   console.time(`Add idempotent ${logId}`)
   const client = await pool.connect()
+
+  // Periodically prune old records:
+  if (Math.random() < 0.2) {
+    await deleteOldIdempotencies()
+  }
 
   try {
     await client.query('BEGIN')
@@ -205,7 +228,7 @@ async function addNoteIdempotent(key, uid, note) {
 }
 
 module.exports = {
-  registerLogin,
+  transactRegistration,
   getUser,
   getNote,
   listNotes,
