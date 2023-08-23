@@ -192,11 +192,12 @@ app
 
   // Expire an identity token
   .delete('/login', acao, (req, res) => {
+    log('DEBUG -- Todo: Disable sameSite none, switch static host', yellow)
     log('🧼 sending login-delete', pink)
     return res
       .cookie('token', '', {
         httpOnly: true,
-        sameSite: 'Strict',
+        sameSite: 'None',
         secure: process.env.NODE_ENV !== 'development',
         expires: new Date(0),
       })

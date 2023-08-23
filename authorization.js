@@ -89,9 +89,10 @@ const signToken = claims => {
 }
 
 function setTokenCookie(res, token) {
+  log('DEBUG -- Todo: Revert sameSite to strict, change static host', yellow)
   return res.cookie('token', token, {
     httpOnly: true,
-    sameSite: 'Strict',
+    sameSite: 'None',
     secure: process.env.NODE_ENV !== 'development',
     maxAge: cookieSeconds * 1000,
   })
