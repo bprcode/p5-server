@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 require('dotenv').config({ path: '../.secret/token.env' })
+const path = require('node:path')
 const express = require('express')
 const app = express()
 const cookieParser = require('cookie-parser')
@@ -47,9 +48,11 @@ async function acao(req, res, next) {
     'Access-Control-Allow-Credentials': 'true',
     'Access-Control-Max-Age': '300',
   })
+  const waitId = Math.random().toFixed(3) * 1000
+  console.time(`(${waitId}) Awaited`)
   log('About to await...', pink)
   await emulateLag()
-  log('Await completed.', green)
+  console.timeEnd(`(${waitId}) Awaited`)
 
   next()
 }
@@ -91,6 +94,15 @@ app
     res.send('Welcome to the server')
     log('Served: ', req.originalUrl, blue)
   })
+
+  .use(
+    express.static(
+      path.join(
+        'static',
+        process.env.NODE_ENV === 'production' ? 'production' : 'development'
+      )
+    )
+  )
 
   // Let the client know the state of its cookie:
   .get(
@@ -148,7 +160,6 @@ app
     try {
       // Attempt to register an account. Discard the result.
       await transactRegistration(req.body)
-
     } catch (e) {
       log('encountered registration error: ', e.message)
     }
@@ -192,12 +203,11 @@ app
 
   // Expire an identity token
   .delete('/login', acao, (req, res) => {
-    log('DEBUG -- Todo: Disable sameSite none, switch static host', yellow)
     log('🧼 sending login-delete', pink)
     return res
       .cookie('token', '', {
         httpOnly: true,
-        sameSite: 'None',
+        sameSite: 'Strict',
         secure: process.env.NODE_ENV !== 'development',
         expires: new Date(0),
       })
@@ -274,7 +284,7 @@ app
       authorId: req.verified.uid,
     })
       .catch(() => {}) // no-op
-      .finally(() => res.status(200).json({ notice: 'Request received.'}))
+      .finally(() => res.status(200).json({ notice: 'Request received.' }))
   })
 
   .get('*', (req, res) => {
