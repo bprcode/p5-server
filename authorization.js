@@ -20,32 +20,22 @@ const identifyCredentials = async (req, res, next) => {
       algorithms: ['HS512'],
     })
 
-    // log('🗝️ Using values from payload: ', payload)
     req.verified = payload
 
     if ((req.verified.exp - Date.now() / 1000) / cookieSeconds < 0.5) {
-      log(
-        `⌛ time getting low, refreshing ` +
-          `(${req.verified.exp - Date.now() / 1000}s remaining)`
-      )
       refreshCookie(res, req.verified)
     }
-
-    next()
   } catch (e) {
     log('❌ Verification failed: ', pink, e.message)
-    req.verified = Object.create(null)
 
     if (e.message === 'jwt expired') {
-      req.verified.expired = true
-
-      // For any other reason...
-    } else {
-      req.verified.error = 'Invalid credentials.'
+      return res.status(401).json({ error: 'Token expired.' })
     }
-
-    return next()
+    // For any other error...
+    return res.status(403).json({ error: 'Invalid credentials.' })
   }
+
+  next()
 }
 
 /**

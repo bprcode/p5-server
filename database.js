@@ -14,7 +14,7 @@ async function matchCredentials(email, password) {
     if (await bcrypt.compare(password, record.hash)) {
       return { uid: record.uid, name: record.name, email: record.email }
     }
-  } catch (e) {}
+  } catch (_) {}
   finally {
     console.timeEnd(`(${timerId}) Hash comparison`)
   }

@@ -84,11 +84,6 @@ app
     next()
   })
 
-  .get('/', (req, res) => {
-    res.send('Welcome to the server')
-    log('Served: ', req.originalUrl, blue)
-  })
-
   .use(
     express.static(
       path.join(
@@ -105,7 +100,7 @@ app
     (req, res, next) => {
       if (!req.cookies.token) {
         log('User had no cookie; must login to proceed.')
-        return res.status(400).json({ notice: 'Awaiting login.' })
+        return res.status(401).json({ notice: 'Awaiting login.' })
       }
       next()
     },
@@ -209,34 +204,24 @@ app
 
   // SECURED ROUTES ___________________________________________________________
 
-  // Set Access-Control-Allow-Origin, Access-Control-Allow-Credentials,
-  // and extract verified fields from cookie token:
-  .use('*', acao, identifyCredentials)
-  .use('*', (req, res, next) => {
-    if (req.verified.expired) {
-      return res.status(401).json({ error: 'Token expired.' })
-    }
-    next()
-  })
-
   // users routes
-  .get('/users/:id/notebook', async (req, res) => {
+  .get('/users/:id/notebook', acao, identifyCredentials, async (req, res) => {
     // Validation: path-id = <bearer>
     if (req.verified.uid !== req.params.id) {
       log('denied: ', blue, req.verified.uid, ' !== ', yellow, req.params.id)
-      return res.status(401).json({ error: 'Permission denied.' })
+      return res.status(403).json({ error: 'Permission denied.' })
     }
     listNotes(req.params.id)
       .then(noteList => res.json(noteList))
       .catch(error => res.status(500).json({ error: error.message }))
   })
 
-  .post('/users/:id/notebook', async (req, res) => {
+  .post('/users/:id/notebook', acao, identifyCredentials, async (req, res) => {
     // Validation:  path-id = <bearer>,
     //              body.key exists
     if (req.verified.uid !== req.params.id || !req.body.key) {
       log('denied note creation in ', pink, req.params.id)
-      return res.status(401).json({ error: 'Permission denied.' })
+      return res.status(403).json({ error: 'Permission denied.' })
     }
 
     addNoteIdempotent(req.body.key, req.verified.uid, {
@@ -251,14 +236,14 @@ app
   })
 
   // notes routes
-  .get('/notes/:id', (req, res) => {
+  .get('/notes/:id', acao, identifyCredentials, (req, res) => {
     // Validation: author = <bearer>, handled in query
     getNote({ noteId: req.params.id, authorId: req.verified.uid })
       .then(user => res.json(user))
-      .catch(error => res.status(401).json({ error: error.message }))
+      .catch(error => res.status(403).json({ error: error.message }))
   })
 
-  .put('/notes/:id', (req, res) => {
+  .put('/notes/:id', acao, identifyCredentials, (req, res) => {
     // Validation: author = <bearer>, handled in query
     updateNote({
       noteId: req.params.id,
@@ -267,10 +252,10 @@ app
       title: req.body.title,
     })
       .then(result => res.json(result))
-      .catch(error => res.status(401).json({ error: 'Update denied.' }))
+      .catch(error => res.status(403).json({ error: 'Update denied.' }))
   })
 
-  .delete('/notes/:id', async (req, res) => {
+  .delete('/notes/:id', acao, identifyCredentials,  async (req, res) => {
     // Validation: author = <bearer>, handled in query
     deleteNote({
       noteId: req.params.id,
@@ -280,9 +265,11 @@ app
       .finally(() => res.status(200).json({ notice: 'Request received.' }))
   })
 
+  // ERROR HANDLERS ___________________________________________________________
+
   .get('*', (req, res) => {
-    res.status(404).send('❓ Not Found')
     log('Resource not found: ', req.originalUrl, pink)
+    res.status(404).sendFile('404.html', { root: 'static'} )
   })
 
   .use((err, req, res, next) => {
