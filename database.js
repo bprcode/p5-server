@@ -6,13 +6,18 @@ const pool = new Pool()
 
 // If given valid credentials, return matching user record, null otherwise.
 async function matchCredentials(email, password) {
+  const timerId = (Math.random()*1000).toFixed()
   try {
     const record = await getUserByEmail(email)
 
+    console.time(`(${timerId}) Hash comparison`)
     if (await bcrypt.compare(password, record.hash)) {
       return { uid: record.uid, name: record.name, email: record.email }
     }
   } catch (e) {}
+  finally {
+    console.timeEnd(`(${timerId}) Hash comparison`)
+  }
 
   return null
 }
