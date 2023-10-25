@@ -12,54 +12,16 @@ const {
   addNoteIdempotent,
   listNotes,
   transactRegistration,
-} = require('./database.js')
+} = require('./shared/database')
 require('@bprcode/handy')
 const {
   identifyCredentials,
   requestToken,
   cookieSeconds,
   setTokenCookie,
-} = require('./authorization.js')
-
-let emulateLag = async () => {}
-
-if (process.env.NODE_ENV === 'development') {
-  log('In dev mode. Emulating lag.', pink)
-  log(
-    'Reminder: express-async-errors will pass control' +
-      ' on middleware promise rejections!'
-  )
-  emulateLag = () =>
-    new Promise(ok => {
-      const delay = 1500 + 500 * Math.random()
-      const dc = Math.random()
-      const waitId = Math.random().toFixed(3) * 1000
-
-      log(`(${waitId}) Delaying... dc = ${dc.toFixed(3)}`, pink)
-      console.time(`(${waitId}) Delayed`)
-
-      if (dc < 0.9) {
-        setTimeout(() => {
-          console.timeEnd(`(${waitId}) Delayed`)
-          ok()
-        }, delay)
-      } else {
-        log('🪩 Simulating disconnect')
-      }
-    })
-}
-
-async function acao(req, res, next) {
-  res.set({
-    'Access-Control-Allow-Origin': process.env.ACAO,
-    'Access-Control-Allow-Credentials': 'true',
-    'Access-Control-Max-Age': '300',
-  })
-
-  await emulateLag()
-
-  next()
-}
+} = require('./shared/authorization')
+const usersRoutes = require('./routes/users.routes')
+const { acao } = require('./shared/shared')
 
 app
   .disable('x-powered-by')
@@ -204,6 +166,8 @@ app
 
   // SECURED ROUTES ___________________________________________________________
 
+  .use(usersRoutes)
+  /*
   // users routes
   .get('/users/:id/notebook', acao, identifyCredentials, async (req, res) => {
     // Validation: path-id = <bearer>
@@ -234,6 +198,7 @@ app
         res.status(500).json({ error: 'Unable to create note.' })
       })
   })
+  */
 
   // notes routes
   .get('/notes/:id', acao, identifyCredentials, (req, res) => {
@@ -255,7 +220,7 @@ app
       .catch(error => res.status(403).json({ error: 'Update denied.' }))
   })
 
-  .delete('/notes/:id', acao, identifyCredentials,  async (req, res) => {
+  .delete('/notes/:id', acao, identifyCredentials, async (req, res) => {
     // Validation: author = <bearer>, handled in query
     deleteNote({
       noteId: req.params.id,
@@ -269,7 +234,7 @@ app
 
   .get('*', (req, res) => {
     log('Resource not found: ', req.originalUrl, pink)
-    res.status(404).sendFile('404.html', { root: 'static'} )
+    res.status(404).sendFile('404.html', { root: 'static' })
   })
 
   .use((err, req, res, next) => {
