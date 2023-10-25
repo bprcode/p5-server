@@ -27,16 +27,9 @@ if (process.env.NODE_ENV === 'development') {
     })
 }
 
-async function acao(req, res, next) {
-  res.set({
-    'Access-Control-Allow-Origin': process.env.ACAO,
-    'Access-Control-Allow-Credentials': 'true',
-    'Access-Control-Max-Age': '300',
-  })
-
+async function delay(req, res, next) {
   await emulateLag()
-
   next()
 }
 
-module.exports = { acao }
+module.exports = { delay }

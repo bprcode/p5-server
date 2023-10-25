@@ -1,12 +1,12 @@
 const express = require('express')
-const { acao } = require('../shared/shared')
-const { listNotes } = require('../shared/database')
+const { delay } = require('../shared/shared')
+const { listNotes, addNoteIdempotent } = require('../shared/database')
 const { identifyCredentials } = require('../shared/authorization')
 const router = express.Router()
 
 router
   // users routes
-  .get('/users/:id/notebook', acao, identifyCredentials, async (req, res) => {
+  .get('/users/:id/notebook', delay, identifyCredentials, async (req, res) => {
     // Validation: path-id = <bearer>
     if (req.verified.uid !== req.params.id) {
       log('denied: ', blue, req.verified.uid, ' !== ', yellow, req.params.id)
@@ -17,7 +17,7 @@ router
       .catch(error => res.status(500).json({ error: error.message }))
   })
 
-  .post('/users/:id/notebook', acao, identifyCredentials, async (req, res) => {
+  .post('/users/:id/notebook', delay, identifyCredentials, async (req, res) => {
     // Validation:  path-id = <bearer>,
     //              body.key exists
     if (req.verified.uid !== req.params.id || !req.body.key) {
