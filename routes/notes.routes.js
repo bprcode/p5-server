@@ -6,14 +6,14 @@ const router = express.Router()
 
 router
   // notes routes
-  .get('/notes/:id', delay, identifyCredentials, (req, res) => {
+  .get('/:id', delay, identifyCredentials, (req, res) => {
     // Validation: author = <bearer>, handled in query
     getNote({ noteId: req.params.id, authorId: req.verified.uid })
       .then(user => res.json(user))
       .catch(error => res.status(403).json({ error: error.message }))
   })
 
-  .put('/notes/:id', delay, identifyCredentials, (req, res) => {
+  .put('/:id', delay, identifyCredentials, (req, res) => {
     // Validation: author = <bearer>, handled in query
     updateNote({
       noteId: req.params.id,
@@ -25,7 +25,7 @@ router
       .catch(error => res.status(403).json({ error: 'Update denied.' }))
   })
 
-  .delete('/notes/:id', delay, identifyCredentials, async (req, res) => {
+  .delete('/:id', delay, identifyCredentials, async (req, res) => {
     // Validation: author = <bearer>, handled in query
     deleteNote({
       noteId: req.params.id,

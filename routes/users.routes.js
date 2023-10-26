@@ -6,7 +6,7 @@ const router = express.Router()
 
 router
   // users routes
-  .get('/users/:id/notebook', delay, identifyCredentials, async (req, res) => {
+  .get('/:id/notebook', delay, identifyCredentials, async (req, res) => {
     // Validation: path-id = <bearer>
     if (req.verified.uid !== req.params.id) {
       log('denied: ', blue, req.verified.uid, ' !== ', yellow, req.params.id)
@@ -17,7 +17,7 @@ router
       .catch(error => res.status(500).json({ error: error.message }))
   })
 
-  .post('/users/:id/notebook', delay, identifyCredentials, async (req, res) => {
+  .post('/:id/notebook', delay, identifyCredentials, async (req, res) => {
     // Validation:  path-id = <bearer>,
     //              body.key exists
     if (req.verified.uid !== req.params.id || !req.body.key) {

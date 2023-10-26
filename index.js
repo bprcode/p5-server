@@ -43,8 +43,8 @@ app
   )
 
   .use(indexRoutes)
-  .use(usersRoutes)
-  .use(notesRoutes)
+  .use('/users', usersRoutes)
+  .use('/notes', notesRoutes)
 
   // ERROR HANDLERS ___________________________________________________________
 
