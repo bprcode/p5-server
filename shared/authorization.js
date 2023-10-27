@@ -11,7 +11,7 @@ const cookieSeconds = 60 * 2
 const identifyCredentials = async (req, res, next) => {
   if (!req.cookies.token) {
     log('❔ No cookie.')
-    return res.status(401).json({ error: 'No identification provided.' })
+    return res.status(403).json({ error: 'No identification provided.' })
   }
 
   // Otherwise, validate the token:
@@ -29,7 +29,7 @@ const identifyCredentials = async (req, res, next) => {
     log('❌ Verification failed: ', pink, e.message)
 
     if (e.message === 'jwt expired') {
-      return res.status(401).json({ error: 'Token expired.' })
+      return res.status(403).json({ error: 'Token expired.' })
     }
     // For any other error...
     return res.status(403).json({ error: 'Invalid credentials.' })

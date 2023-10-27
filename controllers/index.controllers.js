@@ -17,7 +17,7 @@ me.get = [
   (req, res, next) => {
     if (!req.cookies.token) {
       log('User had no cookie; must login to proceed.')
-      return res.status(401).json({ notice: 'Awaiting login.' })
+      return res.status(403).json({ notice: 'Awaiting login.' })
     }
     next()
   },
@@ -46,7 +46,7 @@ login.post = [
       })
     }
 
-    res.status(401).send({ error: 'Invalid credentials.' })
+    res.status(403).send({ error: 'Invalid credentials.' })
   },
 ]
 
