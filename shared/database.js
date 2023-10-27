@@ -8,9 +8,9 @@ const pool = new Pool()
 async function matchCredentials(email, password) {
   const timerId = (Math.random()*1000).toFixed()
   try {
+    console.time(`(${timerId}) Hash comparison`)
     const record = await getUserByEmail(email)
 
-    console.time(`(${timerId}) Hash comparison`)
     if (await bcrypt.compare(password, record.hash)) {
       return { uid: record.uid, name: record.name, email: record.email }
     }
