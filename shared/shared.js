@@ -1,7 +1,10 @@
-
 let emulateLag = async () => {}
 
 if (process.env.NODE_ENV === 'development') {
+  if (process.argv.includes('-nolag')) {
+    log('Disabling lag emulation.', pink)
+  } else {
+
   log('In dev mode. Emulating lag.', pink)
   log(
     'Reminder: express-async-errors will pass control' +
@@ -25,6 +28,7 @@ if (process.env.NODE_ENV === 'development') {
         log('🪩 Simulating disconnect')
       }
     })
+  }
 }
 
 async function delay(req, res, next) {
