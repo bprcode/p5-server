@@ -17,7 +17,7 @@ me.get = [
   (req, res, next) => {
     if (!req.cookies.token) {
       log('User had no cookie; must login to proceed.')
-      return res.status(403).json({ notice: 'Awaiting login.' })
+      return res.status(400).json({ notice: 'Awaiting login.' })
     }
     next()
   },
@@ -94,7 +94,7 @@ register.post = [
     }
 
     log('Unable to use: ', pink, email)
-    res.status(400).json({ error: 'email already in use.' })
+    res.status(409).json({ error: 'email already in use.' })
   },
 ]
 
