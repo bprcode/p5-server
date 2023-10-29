@@ -109,16 +109,16 @@ async function getUserByEmail(email) {
   return result.rows[0]
 }
 
-async function getUser(id) {
-  const result = await pool.query(
-    'SELECT * FROM logins WHERE uid ILIKE $1::text',
-    [id]
-  )
-  if (!result.rows.length) {
-    throw Error('User not found.')
-  }
-  return result.rows[0]
-}
+// async function getUser(id) {
+//   const result = await pool.query(
+//     'SELECT * FROM logins WHERE uid ILIKE $1::text',
+//     [id]
+//   )
+//   if (!result.rows.length) {
+//     throw Error('User not found.')
+//   }
+//   return result.rows[0]
+// }
 
 async function getNote({ noteId, authorId }) {
   const result = await pool.query(
@@ -234,7 +234,7 @@ async function addNoteIdempotent(key, uid, note) {
 
 module.exports = {
   transactRegistration,
-  getUser,
+  // getUser,
   getNote,
   listNotes,
   matchCredentials,

@@ -3,6 +3,7 @@ const { identifyCredentials } = require('../shared/authorization')
 const { listNotes, addNoteIdempotent } = require('../shared/database')
 
 const users = {}
+const notebook = {}
 
 const handleGet = (req, res) => {
   // Validation: path-id = <bearer>
@@ -15,7 +16,7 @@ const handleGet = (req, res) => {
     .catch(error => res.status(500).json({ error: error.message }))
 }
 
-users.get = [delay, identifyCredentials, handleGet]
+notebook.get = [delay, identifyCredentials, handleGet]
 
 const handlePost = (req, res) => {
   // Validation:  path-id = <bearer>,
@@ -36,6 +37,8 @@ const handlePost = (req, res) => {
     })
 }
 
-users.post = [delay, identifyCredentials, handlePost]
+notebook.post = [delay, identifyCredentials, handlePost]
 
-module.exports = { users }
+users.delete = [delay, identifyCredentials, () => {}]
+
+module.exports = { users, notebook }
