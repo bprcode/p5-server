@@ -22,6 +22,15 @@ async function matchCredentials(email, password) {
   return null
 }
 
+async function deleteRegistration(uid) {
+  const result = await pool.query(
+    'DELETE FROM logins WHERE uid = $1::text RETURNING uid',
+    [uid]
+  )
+
+  return result.rows[0]
+}
+
 async function transactRegistration(candidate) {
   const client = await pool.connect()
 
@@ -234,6 +243,7 @@ async function addNoteIdempotent(key, uid, note) {
 
 module.exports = {
   transactRegistration,
+  deleteRegistration,
   // getUser,
   getNote,
   listNotes,

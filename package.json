@@ -4,7 +4,7 @@
   "description": "Token-protected REST route server",
   "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "newman run \".collections/access-flow.json\" -e \".collections/dev-environment.json\" & newman run \".collections/registration-flow.json\" -e \".collections/dev-environment.json\"",
     "dev": "nodemon app.js",
     "nolag": "nodemon app.js -nolag"
   },

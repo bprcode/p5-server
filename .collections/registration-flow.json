@@ -1,0 +1,514 @@
+{
+	"info": {
+		"_postman_id": "c16c3dee-230f-4c60-9630-5f18580b7989",
+		"name": "Registration Flow",
+		"description": "Create, use, and delete user registrations.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "30802510"
+	},
+	"item": [
+		{
+			"name": "Server active / Init test",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"const fname = pm.variables.replaceIn('{{$randomFirstName}}')\r",
+							"const lname = pm.variables.replaceIn('{{$randomLastName}}')\r",
+							"const num = pm.variables.replaceIn('{{$randomInt}}')\r",
+							"const pass = pm.variables.replaceIn('{{$randomPassword}}')\r",
+							"pm.collectionVariables.set('fname', fname)\r",
+							"pm.collectionVariables.set('lname', lname)\r",
+							"pm.collectionVariables.set('userkey', lname+num)\r",
+							"pm.collectionVariables.set('pass', pass)\r",
+							"console.log(pm.collectionVariables.get('fname'))\r",
+							"console.log(pm.collectionVariables.get('lname'))\r",
+							"console.log(pm.collectionVariables.get('userkey'))\r",
+							"console.log(pm.collectionVariables.get('pass'))"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"\r",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{domain}}/hi",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"hi"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Shouldn't register extant user",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"const fname = pm.variables.replaceIn('{{$randomFirstName}}')\r",
+							"const lname = pm.variables.replaceIn('{{$randomLastName}}')\r",
+							"const num = pm.variables.replaceIn('{{$randomInt}}')\r",
+							"console.log(pm.collectionVariables.get('fname'))\r",
+							"console.log(pm.collectionVariables.get('lname'))\r",
+							"console.log(pm.collectionVariables.get('userkey'))"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"409 Registration conflict\", function () {\r",
+							"    pm.response.to.have.status(409);\r",
+							"    const json = pm.response.json()\r",
+							"    pm.expect(json).to.include.keys('error')\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n\t\"email\": \"shredman1212@slice.dice\",\r\n\t\"password\": \"floozy123\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{domain}}/register",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"register"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Register new user",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"const fname = pm.variables.replaceIn('{{$randomFirstName}}')\r",
+							"const lname = pm.variables.replaceIn('{{$randomLastName}}')\r",
+							"const num = pm.variables.replaceIn('{{$randomInt}}')\r",
+							"console.log(pm.collectionVariables.get('fname'))\r",
+							"console.log(pm.collectionVariables.get('lname'))\r",
+							"console.log(pm.collectionVariables.get('userkey'))"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"const fname = pm.collectionVariables.get('fname')\r",
+							"const lname = pm.collectionVariables.get('lname')\r",
+							"const userkey = pm.collectionVariables.get('userkey')\r",
+							"const json = pm.response.json()\r",
+							"\r",
+							"pm.test(\"Registered new user\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"    pm.expect(json).to.include({name: fname + ' ' + lname, email: userkey})\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n\t\"email\": \"{{userkey}}\",\r\n    \"name\": \"{{fname}} {{lname}}\",\r\n\t\"password\": \"{{pass}}\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{domain}}/register",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"register"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Duplicate registration logs in",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"const fname = pm.variables.replaceIn('{{$randomFirstName}}')\r",
+							"const lname = pm.variables.replaceIn('{{$randomLastName}}')\r",
+							"const num = pm.variables.replaceIn('{{$randomInt}}')\r",
+							"console.log(pm.collectionVariables.get('fname'))\r",
+							"console.log(pm.collectionVariables.get('lname'))\r",
+							"console.log(pm.collectionVariables.get('userkey'))"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"const fname = pm.collectionVariables.get('fname')\r",
+							"const lname = pm.collectionVariables.get('lname')\r",
+							"const userkey = pm.collectionVariables.get('userkey')\r",
+							"const json = pm.response.json()\r",
+							"\r",
+							"pm.test(\"Logged in upon duplicate registration\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"    pm.expect(json).to.include({name: fname + ' ' + lname, email: userkey})\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n\t\"email\": \"{{userkey}}\",\r\n    \"name\": \"{{fname}} {{lname}}\",\r\n\t\"password\": \"{{pass}}\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{domain}}/register",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"register"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Identify self",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"const fname = pm.collectionVariables.get('fname')\r",
+							"const lname = pm.collectionVariables.get('lname')\r",
+							"const userkey = pm.collectionVariables.get('userkey')\r",
+							"const json = pm.response.json()\r",
+							"\r",
+							"pm.test(\"Identified self correctly\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"    pm.expect(json).to.include({name: fname + ' ' + lname, email: userkey})\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{domain}}/me",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"me"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Log out",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"200 Logged out\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"url": {
+					"raw": "{{domain}}/login",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"login"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Shouldn't still be logged in",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"\r",
+							"const json = pm.response.json()\r",
+							"\r",
+							"pm.test(\"Identified self correctly\", function () {\r",
+							"    pm.response.to.have.status(400);\r",
+							"    pm.expect(json).to.include.keys('notice')\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{domain}}/me",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"me"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Shouldn't delete uncredentialed",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"const json = pm.response.json()\r",
+							"pm.test(\"403 No logged-out delete\", function () {\r",
+							"    pm.response.to.have.status(403);\r",
+							"    pm.expect(json).to.include.keys('error')\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"url": {
+					"raw": "{{domain}}/register",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"register"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Login as registered user",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"const fname = pm.variables.replaceIn('{{$randomFirstName}}')\r",
+							"const lname = pm.variables.replaceIn('{{$randomLastName}}')\r",
+							"const num = pm.variables.replaceIn('{{$randomInt}}')\r",
+							"console.log(pm.collectionVariables.get('fname'))\r",
+							"console.log(pm.collectionVariables.get('lname'))\r",
+							"console.log(pm.collectionVariables.get('userkey'))"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"const fname = pm.collectionVariables.get('fname')\r",
+							"const lname = pm.collectionVariables.get('lname')\r",
+							"const userkey = pm.collectionVariables.get('userkey')\r",
+							"const json = pm.response.json()\r",
+							"\r",
+							"pm.test(\"Logged in upon duplicate registration\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"    pm.expect(json).to.include({name: fname + ' ' + lname, email: userkey})\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n\t\"email\": \"{{userkey}}\",\r\n\t\"password\": \"{{pass}}\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{domain}}/login",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"login"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Delete own registration",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"200 Delete registration OK\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							" });"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"url": {
+					"raw": "{{domain}}/register",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"register"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"variable": [
+		{
+			"key": "fname",
+			"value": ""
+		},
+		{
+			"key": "lname",
+			"value": ""
+		},
+		{
+			"key": "userkey",
+			"value": ""
+		},
+		{
+			"key": "pass",
+			"value": ""
+		}
+	]
+}

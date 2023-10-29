@@ -1,0 +1,283 @@
+{
+	"info": {
+		"_postman_id": "f1376fba-7d7b-49bc-a5bb-e7383921c41e",
+		"name": "Access Flow",
+		"description": "Test requests for token server endpoints 🦆",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "30802510"
+	},
+	"item": [
+		{
+			"name": "Server active?",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Server active', ()=>{\r",
+							"    pm.response.to.have.status(200)\r",
+							"})"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{domain}}/hi",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"hi"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Wrong password, Shelton",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Shouldn't allow bad login\", function () {\r",
+							"    pm.response.to.have.status(403);\r",
+							"    pm.expect(pm.response.json()).to.include({error: \"Invalid credentials.\"})\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n\t\"email\": \"shredman1212@slice.dice\",\r\n\t\"password\": \"floozy123\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{domain}}/login",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"login"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Right password, Shelton",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"const json = pm.response.json()\r",
+							"pm.test('Logged in', () => {\r",
+							"    pm.response.to.have.status(200)\r",
+							"    pm.expect(json.uid).to.be.a('string')\r",
+							"    pm.collectionVariables.set('uid-test', json.uid)\r",
+							"})"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n\t\"email\": \"shredman1212@slice.dice\",\r\n\t\"password\": \"oozy123\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{domain}}/login",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"login"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Shouldn't access Jenny's notebook",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Shouldn't access another notebook\", function () {\r",
+							"    pm.response.to.have.status(403);\r",
+							"    const json = pm.response.json()\r",
+							"    pm.expect(json).to.have.keys('error')\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{domain}}/users/:uid/notebook",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"users",
+						":uid",
+						"notebook"
+					],
+					"variable": [
+						{
+							"key": "uid",
+							"value": "2fVK44ww"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Shelton's notebook",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Got notebook\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"\r",
+							"pm.test('Notebook has at least one entry', () => {\r",
+							"    const json = pm.response.json()\r",
+							"    pm.expect(json).to.have.lengthOf.at.least(1)\r",
+							"    console.log(json[0])\r",
+							"    pm.collectionVariables.set('note-test', json[0]['note_id'])\r",
+							"})"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{domain}}/users/{{uid-test}}/notebook",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"users",
+						"{{uid-test}}",
+						"notebook"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Read first note",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Retrieved note with contents', () => {\r",
+							"    const json = pm.response.json()\r",
+							"    pm.response.to.have.status(200)\r",
+							"    pm.expect(json.content).to.be.a('string')\r",
+							"    console.log(json.content)\r",
+							"})"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{domain}}/notes/{{note-test}}",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"notes",
+						"{{note-test}}"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "uid-shel",
+			"value": "44ged5Qa"
+		},
+		{
+			"key": "uid-jen",
+			"value": "2fVK44ww"
+		},
+		{
+			"key": "uid-test",
+			"value": ""
+		},
+		{
+			"key": "note-test",
+			"value": ""
+		}
+	]
+}

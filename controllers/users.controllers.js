@@ -2,7 +2,6 @@ const { delay } = require('../shared/shared')
 const { identifyCredentials } = require('../shared/authorization')
 const { listNotes, addNoteIdempotent } = require('../shared/database')
 
-const users = {}
 const notebook = {}
 
 const handleGet = (req, res) => {
@@ -39,6 +38,4 @@ const handlePost = (req, res) => {
 
 notebook.post = [delay, identifyCredentials, handlePost]
 
-users.delete = [delay, identifyCredentials, () => {}]
-
-module.exports = { users, notebook }
+module.exports = { notebook }

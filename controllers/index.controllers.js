@@ -5,7 +5,10 @@ const {
   setTokenCookie,
   cookieSeconds,
 } = require('../shared/authorization')
-const { transactRegistration } = require('../shared/database')
+const {
+  transactRegistration,
+  deleteRegistration,
+} = require('../shared/database')
 
 const me = {}
 const login = {}
@@ -63,6 +66,25 @@ login.delete = [
         expires: new Date(0),
       })
       .json({})
+  },
+]
+
+// Delete a user registration
+register.delete = [
+  delay,
+  identifyCredentials,
+  (req, res) => {
+    // Validation: <bearer> exists
+    if (!req.verified?.uid) {
+      return res.status(400).json({ error: 'Invalid identification.' })
+    }
+    log('Trying to delete: ', yellow, req.verified.uid)
+    deleteRegistration(req.verified.uid)
+      .then(() => res.send())
+      .catch(e => {
+        log('Failed to delete registration: ', yellow, e.message)
+        res.status(500).json({ error: 'Failed to delete registration.' })
+      })
   },
 ]
 
