@@ -1,0 +1,641 @@
+{
+	"info": {
+		"_postman_id": "2bb5af74-93dd-4a0d-8dfa-a57e40d3260b",
+		"name": "Note Usage Flow",
+		"description": "Create, read, update, and delete notes for a newly registered user. Ensure cross-user operations are prohibited. Delete the registration afterwards.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "30802510"
+	},
+	"item": [
+		{
+			"name": "Server active / init flow",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"200 Server active\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"const fname = pm.variables.replaceIn('{{$randomFirstName}}')\r",
+							"const lname = pm.variables.replaceIn('{{$randomLastName}}')\r",
+							"const num = pm.variables.replaceIn('{{$randomInt}}')\r",
+							"const pass = pm.variables.replaceIn('{{$randomPassword}}')\r",
+							"pm.collectionVariables.set('fname', fname)\r",
+							"pm.collectionVariables.set('lname', lname)\r",
+							"pm.collectionVariables.set('userkey', lname+num)\r",
+							"pm.collectionVariables.set('pass', pass)\r",
+							"console.log(pm.collectionVariables.get('fname'))\r",
+							"console.log(pm.collectionVariables.get('lname'))\r",
+							"console.log(pm.collectionVariables.get('userkey'))\r",
+							"console.log(pm.collectionVariables.get('pass'))"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{domain}}/hi",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"hi"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Register / get uid",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"const fname = pm.collectionVariables.get('fname')\r",
+							"const lname = pm.collectionVariables.get('lname')\r",
+							"const userkey = pm.collectionVariables.get('userkey')\r",
+							"const json = pm.response.json()\r",
+							"\r",
+							"pm.test(\"Registered new user\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"    pm.expect(json).to.include({name: fname + ' ' + lname, email: userkey})\r",
+							"});\r",
+							"\r",
+							"pm.collectionVariables.set('example-uid', json.uid)\r",
+							"console.log('Obtained uid=', pm.collectionVariables.get('example-uid'))"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n\t\"email\": \"{{userkey}}\",\r\n    \"name\": \"{{fname}} {{lname}}\",\r\n\t\"password\": \"{{pass}}\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{domain}}/register",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"register"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Shouldn't access forbidden notebook",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Shouldn't access another notebook\", function () {\r",
+							"    pm.response.to.have.status(403);\r",
+							"    const json = pm.response.json()\r",
+							"    pm.expect(json).to.have.keys('error')\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{domain}}/users/:uid/notebook",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"users",
+						":uid",
+						"notebook"
+					],
+					"variable": [
+						{
+							"key": "uid",
+							"value": "2fVK44ww"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Notebook is initially empty",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"\r",
+							"pm.test(\"Notebook is initially empty\", function () {\r",
+							"    const json = pm.response.json();\r",
+							"    pm.response.to.have.status(200);\r",
+							"    pm.expect(json).to.be.an('array').with.lengthOf(0);\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{domain}}/users/:uid/notebook",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"users",
+						":uid",
+						"notebook"
+					],
+					"variable": [
+						{
+							"key": "uid",
+							"value": "{{example-uid}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create random note",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"const json = pm.response.json()\r",
+							"\r",
+							"pm.test(\"Created random note\", function () {\r",
+							"    pm.response.to.have.status(201);\r",
+							"    pm.expect(json).to.include.keys('content', 'title', 'note_id', 'author_id')\r",
+							"    pm.expect(json.author_id).to.equal(pm.collectionVariables.get('example-uid'))\r",
+							"});\r",
+							"\r",
+							"pm.collectionVariables.set('example-note', json['note_id'])\r",
+							"console.log('Created note with id=', pm.collectionVariables.get('example-note'))"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"key\": \"{{$randomBankAccount}}\",\r\n    \"title\": \"{{$randomLoremWords}}\",\r\n    \"content\": \"{{$randomLoremSentences}}\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{domain}}/users/:uid/notebook",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"users",
+						":uid",
+						"notebook"
+					],
+					"variable": [
+						{
+							"key": "uid",
+							"value": "{{example-uid}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Shouldn't create in forbidden notebook",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Shouldn't create in another notebook\", () => {\r",
+							"    pm.response.to.have.status(403)\r",
+							"})"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"key\": \"{{$randomBankAccount}}\",\r\n    \"title\": \"{{$randomLoremWords}}\",\r\n    \"content\": \"{{$randomLoremSentences}}\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{domain}}/users/:uid/notebook",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"users",
+						":uid",
+						"notebook"
+					],
+					"variable": [
+						{
+							"key": "uid",
+							"value": "2fVK44ww"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Read created note",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"const json = pm.response.json()\r",
+							"pm.test(\"Read created note\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"    pm.expect(json).to.include.keys('content', 'title')\r",
+							"    pm.expect(json.content).to.be.a('string')\r",
+							"    pm.expect(json).to.include({\"author_id\": pm.collectionVariables.get('example-uid')})\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{domain}}/notes/:note-id",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"notes",
+						":note-id"
+					],
+					"variable": [
+						{
+							"key": "note-id",
+							"value": "{{example-note}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Shouldn't read forbidden note",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"const json = pm.response.json()\r",
+							"pm.test(\"Shouldn't access forbidden note\", function () {\r",
+							"    pm.response.to.have.status(403);\r",
+							"    pm.expect(json).to.include.keys('error')\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{domain}}/notes/:note-id",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"notes",
+						":note-id"
+					],
+					"variable": [
+						{
+							"key": "note-id",
+							"value": "4el-mSBD"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Update note",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"const json = pm.response.json()\r",
+							"\r",
+							"pm.test(\"Updated note\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"    pm.expect(json.title).to.include(\"updated\")\r",
+							"    pm.expect(json.content).to.include(\"updated\")\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "PUT",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"title\": \"updated title\",\r\n    \"content\": \"updated content\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{domain}}/notes/:note-id",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"notes",
+						":note-id"
+					],
+					"variable": [
+						{
+							"key": "note-id",
+							"value": "{{example-note}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Shouldn't update forbidden note",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"const json = pm.response.json()\r",
+							"\r",
+							"pm.test(\"Shouldn't update forbidden note\", function () {\r",
+							"    pm.response.to.have.status(403);\r",
+							"    pm.expect(json).to.include.key(\"error\")\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "PUT",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"title\": \"updated title\",\r\n    \"content\": \"updated content\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{domain}}/notes/:note-id",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"notes",
+						":note-id"
+					],
+					"variable": [
+						{
+							"key": "note-id",
+							"value": "4el-mSBD"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Delete note",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Delete note\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"url": {
+					"raw": "{{domain}}/notes/:note-id",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"notes",
+						":note-id"
+					],
+					"variable": [
+						{
+							"key": "note-id",
+							"value": "{{example-note}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Deregister",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"200 Delete registration OK\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							" });"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"url": {
+					"raw": "{{domain}}/register",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"register"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"variable": [
+		{
+			"key": "fname",
+			"value": ""
+		},
+		{
+			"key": "lname",
+			"value": ""
+		},
+		{
+			"key": "userkey",
+			"value": ""
+		},
+		{
+			"key": "pass",
+			"value": ""
+		},
+		{
+			"key": "example-uid",
+			"value": ""
+		},
+		{
+			"key": "example-note",
+			"value": ""
+		}
+	]
+}

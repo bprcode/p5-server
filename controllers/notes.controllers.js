@@ -23,7 +23,6 @@ const handlePut = (req, res) => {
   })
     .then(result => res.json(result))
     .catch(() => {
-      console.log('I caught this')
       res.status(403).json({ error: 'Update denied.' })
     })
 }
