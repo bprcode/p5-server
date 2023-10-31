@@ -9,6 +9,7 @@ require('@bprcode/handy')
 const indexRoutes = require('./routes/index.routes')
 const usersRoutes = require('./routes/users.routes')
 const notesRoutes = require('./routes/notes.routes')
+const calendarsRoutes = require('./routes/calendars.routes')
 
 app
   .disable('x-powered-by')
@@ -45,6 +46,7 @@ app
   .use(indexRoutes)
   .use('/users', usersRoutes)
   .use('/notes', notesRoutes)
+  .use('/calendars', calendarsRoutes)
 
   // ERROR HANDLERS ___________________________________________________________
 

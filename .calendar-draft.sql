@@ -1,31 +1,23 @@
---
+-- public.calendars definition
 
-DROP TABLE IF EXISTS public.calendars;
+-- Drop table
+
+-- DROP TABLE public.calendars;
+
 CREATE TABLE public.calendars (
-calendar_id text NOT NULL,
-etag text DEFAULT floor(random() * (99999999 - 10000000 + 1) + 10000000)::text,
-created timestamptz NULL DEFAULT CURRENT_TIMESTAMP,
-updated timestamptz NULL DEFAULT CURRENT_TIMESTAMP,
-summary text NULL,
-CONSTRAINT calendars_pkey PRIMARY KEY (calendar_id)
+	calendar_id text NOT NULL,
+	etag text NULL DEFAULT floor(random() * (99999999 - 10000000 + 1)::double precision + 10000000::double precision)::text,
+	created timestamptz NULL DEFAULT CURRENT_TIMESTAMP,
+	updated timestamptz NULL DEFAULT CURRENT_TIMESTAMP,
+	summary text NULL,
+	primary_author_id text NULL,
+	CONSTRAINT calendars_pkey PRIMARY KEY (calendar_id),
+	CONSTRAINT fk_primary_author_id FOREIGN KEY (primary_author_id) REFERENCES public.logins(uid) ON DELETE SET NULL ON UPDATE CASCADE
 );
 
---
+-- Table Triggers
 
-CREATE OR REPLACE FUNCTION update_etag()
-RETURNS TRIGGER AS $$
-BEGIN
-	NEW.etag := floor(random() * (99999999 - 10000000 + 1) + 10000000)::text;
-	NEW.updated := current_timestamp;
-	return NEW;
-END;
-$$ LANGUAGE plpgsql;
-
---
-
-CREATE TRIGGER update_calendar_etag
-BEFORE UPDATE ON calendars
-FOR EACH ROW
-EXECUTE FUNCTION update_etag();
-
---
+create trigger update_calendar_etag before
+update
+    on
+    public.calendars for each row execute function update_etag();
