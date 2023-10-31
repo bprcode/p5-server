@@ -78,7 +78,7 @@ register.delete = [
     if (!req.verified?.uid) {
       return res.status(400).json({ error: 'Invalid identification.' })
     }
-    log('Trying to delete: ', yellow, req.verified.uid)
+    log('Trying to delete registration: ', yellow, req.verified.uid)
     deleteRegistration(req.verified.uid)
       .then(() => res.send())
       .catch(e => {
