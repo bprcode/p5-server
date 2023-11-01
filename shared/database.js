@@ -6,7 +6,7 @@ const pool = new Pool()
 
 // If given valid credentials, return matching user record, null otherwise.
 async function matchCredentials(email, password) {
-  const timerId = (Math.random()*1000).toFixed()
+  const timerId = (Math.random() * 1000).toFixed()
   try {
     console.time(`(${timerId}) Hash comparison`)
     const record = await getUserByEmail(email)
@@ -14,8 +14,8 @@ async function matchCredentials(email, password) {
     if (await bcrypt.compare(password, record.hash)) {
       return { uid: record.uid, name: record.name, email: record.email }
     }
-  } catch (_) {}
-  finally {
+  } catch (_) {
+  } finally {
     console.timeEnd(`(${timerId}) Hash comparison`)
   }
 
@@ -118,16 +118,13 @@ async function getUserByEmail(email) {
   return result.rows[0]
 }
 
-// async function getUser(id) {
-//   const result = await pool.query(
-//     'SELECT * FROM logins WHERE uid ILIKE $1::text',
-//     [id]
-//   )
-//   if (!result.rows.length) {
-//     throw Error('User not found.')
-//   }
-//   return result.rows[0]
-// }
+async function getCatalog(authorId) {
+  const result = await pool.query(
+    'SELECT * FROM calendars WHERE primary_author_id = $1::text',
+    [authorId]
+  )
+  return result.rows
+}
 
 async function getNote({ noteId, authorId }) {
   const result = await pool.query(
@@ -244,11 +241,11 @@ async function addNoteIdempotent(key, uid, note) {
 module.exports = {
   transactRegistration,
   deleteRegistration,
-  // getUser,
   getNote,
   listNotes,
   matchCredentials,
   updateNote,
   deleteNote,
   addNoteIdempotent,
+  getCatalog,
 }

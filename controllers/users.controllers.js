@@ -1,10 +1,19 @@
 const { delay } = require('../shared/shared')
 const { identifyCredentials } = require('../shared/authorization')
-const { listNotes, addNoteIdempotent } = require('../shared/database')
+const {
+  listNotes,
+  addNoteIdempotent,
+  getCatalog,
+} = require('../shared/database')
 
 const notebook = {}
+const catalog = {}
+const placeholder = tag => (req, res) =>
+  res
+    .status(418)
+    .send(tag + ' placeholder' + (req.params.id ? ` (${req.params.id})` : ''))
 
-const handleGet = (req, res) => {
+const handleNotebookGet = (req, res) => {
   // Validation: path-id = <bearer>
   if (req.verified.uid !== req.params.id) {
     log('denied: ', blue, req.verified.uid, ' !== ', yellow, req.params.id)
@@ -15,9 +24,9 @@ const handleGet = (req, res) => {
     .catch(error => res.status(500).json({ error: error.message }))
 }
 
-notebook.get = [delay, identifyCredentials, handleGet]
+notebook.get = [delay, identifyCredentials, handleNotebookGet]
 
-const handlePost = (req, res) => {
+const handleNotebookPost = (req, res) => {
   // Validation:  path-id = <bearer>,
   //              body.key exists
   if (req.verified.uid !== req.params.id || !req.body.key) {
@@ -36,6 +45,17 @@ const handlePost = (req, res) => {
     })
 }
 
-notebook.post = [delay, identifyCredentials, handlePost]
+notebook.post = [delay, identifyCredentials, handleNotebookPost]
 
-module.exports = { notebook }
+const handleCatalogGet = async (req, res) => {
+  log(`Retrieving catalog for ${req.verified.uid}`)
+  const result = await getCatalog(req.verified.uid)
+  res.json(result)
+}
+
+catalog.get = [delay, identifyCredentials, handleCatalogGet]
+catalog.post = placeholder('catalog post')
+catalog.put = placeholder('catalog put')
+catalog.delete = placeholder('catalog delete')
+
+module.exports = { notebook, catalog }
