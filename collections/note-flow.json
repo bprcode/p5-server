@@ -201,7 +201,7 @@
 			"response": []
 		},
 		{
-			"name": "Create random note",
+			"name": "Idem note with constant key",
 			"event": [
 				{
 					"listen": "test",
@@ -224,7 +224,9 @@
 				{
 					"listen": "prerequest",
 					"script": {
-						"exec": [],
+						"exec": [
+							""
+						],
 						"type": "text/javascript"
 					}
 				}
@@ -234,13 +236,178 @@
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\r\n    \"key\": \"{{$randomBankAccount}}\",\r\n    \"title\": \"{{$randomLoremWords}}\",\r\n    \"content\": \"{{$randomLoremSentences}}\"\r\n}",
+					"raw": "{\r\n    \"key\": \"123\",\r\n    \"title\": \"{{$randomLoremWords}}\",\r\n    \"content\": \"{{$randomLoremSentences}}\"\r\n}",
 					"options": {
 						"raw": {
 							"language": "json"
 						}
 					}
 				},
+				"url": {
+					"raw": "{{domain}}/users/:uid/notebook",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"users",
+						":uid",
+						"notebook"
+					],
+					"variable": [
+						{
+							"key": "uid",
+							"value": "{{example-uid}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Notebook has one entry",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"\r",
+							"pm.test(\"Notebook has one entry\", function () {\r",
+							"    const json = pm.response.json();\r",
+							"    pm.response.to.have.status(200);\r",
+							"    pm.expect(json).to.be.an('array').with.lengthOf(1);\r",
+							"    for(const row of json)console.log(row)\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{domain}}/users/:uid/notebook",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"users",
+						":uid",
+						"notebook"
+					],
+					"variable": [
+						{
+							"key": "uid",
+							"value": "{{example-uid}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Idem note with redundant key",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"const json = pm.response.json()\r",
+							"\r",
+							"pm.test(\"Created random note\", function () {\r",
+							"    pm.response.to.have.status(201);\r",
+							"    pm.expect(json).to.include.keys('content', 'title', 'note_id', 'author_id')\r",
+							"    pm.expect(json.author_id).to.equal(pm.collectionVariables.get('example-uid'))\r",
+							"});\r",
+							"\r",
+							"pm.collectionVariables.set('example-note', json['note_id'])\r",
+							"console.log('Created note with id=', pm.collectionVariables.get('example-note'))"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"key\": \"123\",\r\n    \"title\": \"{{$randomLoremWords}}\",\r\n    \"content\": \"{{$randomLoremSentences}}\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{domain}}/users/:uid/notebook",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"users",
+						":uid",
+						"notebook"
+					],
+					"variable": [
+						{
+							"key": "uid",
+							"value": "{{example-uid}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Notebook still has single entry",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"\r",
+							"pm.test(\"Notebook still has only one entry\", function () {\r",
+							"    const json = pm.response.json();\r",
+							"    pm.response.to.have.status(200);\r",
+							"    pm.expect(json).to.be.an('array').with.lengthOf(1);\r",
+							"    for(const row of json)console.log(row)\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
 				"url": {
 					"raw": "{{domain}}/users/:uid/notebook",
 					"host": [
@@ -579,6 +746,7 @@
 					"listen": "test",
 					"script": {
 						"exec": [
+							"console.log('Sending deregister request with userkey='+pm.collectionVariables.get('userkey'))\r",
 							"pm.test(\"200 Delete registration OK\", function () {\r",
 							"    pm.response.to.have.status(200);\r",
 							" });"
@@ -606,6 +774,48 @@
 					],
 					"path": [
 						"register"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Login shouldn't exist anymore",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Deregistered login shouldn't work\", function () {\r",
+							"    const json = pm.response.json()\r",
+							"    pm.response.to.have.status(403);\r",
+							"    pm.expect(json).to.include({error: 'Invalid credentials.'})\r",
+							"\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n\t\"email\": \"{{userkey}}\",\r\n    \"name\": \"{{fname}} {{lname}}\",\r\n\t\"password\": \"{{pass}}\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{domain}}/login",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"login"
 					]
 				}
 			},

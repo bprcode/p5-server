@@ -143,6 +143,7 @@
 							"pm.test(\"Registered new user\", function () {\r",
 							"    pm.response.to.have.status(200);\r",
 							"    pm.expect(json).to.include({name: fname + ' ' + lname, email: userkey})\r",
+							"    console.log('registered ', userkey)\r",
 							"});"
 						],
 						"type": "text/javascript"
@@ -255,7 +256,9 @@
 				{
 					"listen": "prerequest",
 					"script": {
-						"exec": [],
+						"exec": [
+							""
+						],
 						"type": "text/javascript"
 					}
 				}
@@ -420,7 +423,7 @@
 							"const userkey = pm.collectionVariables.get('userkey')\r",
 							"const json = pm.response.json()\r",
 							"\r",
-							"pm.test(\"Logged in upon duplicate registration\", function () {\r",
+							"pm.test(\"Logged in again\", function () {\r",
 							"    pm.response.to.have.status(200);\r",
 							"    pm.expect(json).to.include({name: fname + ' ' + lname, email: userkey})\r",
 							"});"
@@ -460,6 +463,7 @@
 					"listen": "test",
 					"script": {
 						"exec": [
+							"console.log('Sending deregister request with userkey=', pm.collectionVariables.get('userkey'))\r",
 							"pm.test(\"200 Delete registration OK\", function () {\r",
 							"    pm.response.to.have.status(200);\r",
 							" });"

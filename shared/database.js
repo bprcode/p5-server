@@ -23,10 +23,12 @@ async function matchCredentials(email, password) {
 }
 
 async function deleteRegistration(uid) {
+  log('handling delete request for uid=', yellow, uid)
   const result = await pool.query(
     'DELETE FROM logins WHERE uid = $1::text RETURNING uid',
     [uid]
   )
+  log('outcome=',yellow, result.rows[0])
 
   return result.rows[0]
 }
@@ -36,6 +38,7 @@ async function transactRegistration(candidate) {
 
   try {
     await client.query('BEGIN')
+    log('>> BEGIN', green)
     const previous = await client.query(
       'SELECT email FROM logins WHERE email ilike $1::text',
       [candidate.email]
@@ -60,12 +63,14 @@ async function transactRegistration(candidate) {
       [candidate.email, candidate.name, hash, uid]
     )
 
-    await client.query('COMMIT')
+    
     return outcome.rows[0]
   } catch (e) {
     log(e.message)
     await client.query('ROLLBACK')
+    log('<< ROLLBACK', pink)
   } finally {
+    await client.query('COMMIT')
     client.release()
   }
 }
@@ -126,6 +131,27 @@ async function getCatalog(authorId) {
   return result.rows
 }
 
+async function addToCatalog({ authorId, summary }) {
+  console.log('Acquiring add-client', yellow)
+  const client = await pool.connect()
+  try {
+    await client.query('BEGIN')
+
+    const result = await pool.query(
+      'INSERT INTO calendars (primary_author_id, summary)' +
+        ' VALUES ($1::text, $2::text)',
+      [authorId, summary]
+    )
+
+  } catch (e) {
+    await client.query('ROLLBACK')
+    throw e
+  } finally {
+    await client.query('COMMIT')
+    client.release()
+  }
+}
+
 async function getNote({ noteId, authorId }) {
   const result = await pool.query(
     'SELECT * FROM notes WHERE note_id = $1::text AND author_id = $2::text',
@@ -180,6 +206,14 @@ async function deleteOldIdempotencies() {
   log('♻️ Removed ', recycled.rows.length, ' old records.')
 }
 
+function checkIdempotency({ key, uid, client }) {
+  return client.query(
+    'SELECT * FROM idempotency WHERE ' +
+          'idem_key = $1::text AND uid = $2::text',
+    [key, uid]
+  ).then(result => result.rows[0])
+}
+
 async function addNoteIdempotent(key, uid, note) {
   const logId = Math.random()
   console.time(`Add idempotent ${logId}`)
@@ -195,13 +229,7 @@ async function addNoteIdempotent(key, uid, note) {
     await client.query('BEGIN')
 
     // If a previous result exists, return it
-    const previous = await client
-      .query(
-        'SELECT * FROM idempotency WHERE ' +
-          'idem_key = $1::text AND uid = $2::text',
-        [key, uid]
-      )
-      .then(result => result.rows[0])
+    const previous = await checkIdempotency({ key, uid, client })
 
     if (previous) {
       log('already had note: ', key, uid)
@@ -224,15 +252,16 @@ async function addNoteIdempotent(key, uid, note) {
         'VALUES ($1::text, $2::text, $3::jsonb) RETURNING outcome',
       [key, uid, created]
     )
-    await client.query('COMMIT')
 
-    log('>. Commit reached. Returning.', blue)
+    
+
     return created
   } catch (e) {
     await client.query('ROLLBACK')
     log('<< rolling back...', yellow)
     throw e
   } finally {
+    await client.query('COMMIT')
     console.timeEnd(`Add idempotent ${logId}`)
     client.release()
   }

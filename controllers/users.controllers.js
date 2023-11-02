@@ -54,7 +54,19 @@ const handleCatalogGet = async (req, res) => {
 }
 
 catalog.get = [delay, identifyCredentials, handleCatalogGet]
-catalog.post = placeholder('catalog post')
+
+const handleCatalogPost = (req, res) => {
+  const foo = () => log('foo')
+  try{
+    foo(req.verified.uid)
+  } catch(e) {
+    log('caught error in post handler')
+    res.status(400).json({error: 'Login required before adding calendar.'})
+     
+  }
+}
+
+catalog.post = [ delay, identifyCredentials, handleCatalogPost]
 catalog.put = placeholder('catalog put')
 catalog.delete = placeholder('catalog delete')
 
