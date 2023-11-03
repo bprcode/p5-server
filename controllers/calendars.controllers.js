@@ -12,7 +12,7 @@ const calendars = { id: { events: { id: {} }} }
 const placeholder = tag => (req, res) =>
   res
     .status(418)
-    .send(tag + ' placeholder' + (req.params.id ? ` (${req.params.id})` : ''))
+    .send(tag + ' placeholder')
 
 const handleListCalendars = async (req, res) => {
   log(`Retrieving catalog for ${req.verified.uid}`)
@@ -88,5 +88,10 @@ const handleUpdateCalendar = async (req, res) => {
 }
 
 calendars.id.put = [ delay, identifyCredentials, handleUpdateCalendar ]
+
+calendars.id.events.get = placeholder('get event list')
+calendars.id.events.post = placeholder('create event')
+calendars.id.events.id.put = placeholder('modify event')
+calendars.id.events.id.delete = placeholder('delete event')
 
 module.exports = { calendars }

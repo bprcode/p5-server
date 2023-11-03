@@ -1,0 +1,403 @@
+{
+	"info": {
+		"_postman_id": "63dfe422-c3f7-41a4-88bd-e6e71c77dc0b",
+		"name": "Event Flow",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "30802510"
+	},
+	"item": [
+		{
+			"name": "Login sample user",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"console.log('trying credentials: ', pm.collectionVariables.get('sample-pass'), pm.collectionVariables.get('sample-userkey'))"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"    const json = pm.response.json()\r",
+							"    pm.expect(json).to.include({email: pm.collectionVariables.get('sample-userkey')})\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"email\": \"{{sample-userkey}}\",\r\n    \"password\": \"{{sample-pass}}\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{domain}}/login",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"login"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Add test calendar",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"pm.collectionVariables.set('idem-key', pm.collectionVariables.replaceIn('{{$randomInt}}{{$randomInt}}'))"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"const json = pm.response.json()\r",
+							"pm.collectionVariables.set('calendar-etag', json.etag)\r",
+							"pm.collectionVariables.set('current-calendar', json.calendar_id)\r",
+							"\r",
+							"pm.test(\"Created test calendar\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"key\": \"{{idem-key}}\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{domain}}/calendars",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"calendars"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create event",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Placeholder test\", function () {\r",
+							"    pm.response.to.have.status(418);\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "{{domain}}/calendars/:calendarId/events",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"calendars",
+						":calendarId",
+						"events"
+					],
+					"variable": [
+						{
+							"key": "calendarId",
+							"value": "{{current-calendar}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Event list",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Placeholder test\", function () {\r",
+							"    pm.response.to.have.status(418);\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{domain}}/calendars/:calendarId/events",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"calendars",
+						":calendarId",
+						"events"
+					],
+					"variable": [
+						{
+							"key": "calendarId",
+							"value": "{{current-calendar}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Modify event",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Placeholder test\", function () {\r",
+							"    pm.response.to.have.status(418);\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "PUT",
+				"header": [],
+				"url": {
+					"raw": "{{domain}}/calendars/:calendarId/events/:eventId",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"calendars",
+						":calendarId",
+						"events",
+						":eventId"
+					],
+					"variable": [
+						{
+							"key": "calendarId",
+							"value": "{{current-calendar}}"
+						},
+						{
+							"key": "eventId",
+							"value": "123"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Delete event",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Placeholder test\", function () {\r",
+							"    pm.response.to.have.status(418);\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"url": {
+					"raw": "{{domain}}/calendars/:calendarId/events/:eventId",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"calendars",
+						":calendarId",
+						"events",
+						":eventId"
+					],
+					"variable": [
+						{
+							"key": "calendarId",
+							"value": "{{current-calendar}}"
+						},
+						{
+							"key": "eventId",
+							"value": "123"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Clean up test calendar",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"const json = pm.response.json()\r",
+							"pm.test(\"Cleaned up test calendar\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"    pm.expect(json).to.be.an('array').with.lengthOf(1)\r",
+							"    pm.expect(json[0]).to.include({calendar_id: pm.collectionVariables.get('current-calendar')\r",
+							"    })\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"etag\": \"{{calendar-etag}}\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{domain}}/calendars/:id",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"calendars",
+						":id"
+					],
+					"variable": [
+						{
+							"key": "id",
+							"value": "{{current-calendar}}"
+						}
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "sample-userkey",
+			"value": "shredman1212@slice.dice",
+			"type": "string"
+		},
+		{
+			"key": "sample-pass",
+			"value": "oozy123",
+			"type": "string"
+		},
+		{
+			"key": "idem-key",
+			"value": ""
+		},
+		{
+			"key": "current-calendar",
+			"value": ""
+		},
+		{
+			"key": "calendar-etag",
+			"value": ""
+		}
+	]
+}
