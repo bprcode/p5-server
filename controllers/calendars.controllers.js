@@ -5,7 +5,7 @@ const {
   addCalendar,
 } = require('../shared/database')
 
-const calendars = {}
+const calendars = { id: { events: { id: {} }} }
 
 const placeholder = tag => (req, res) =>
   res
@@ -39,6 +39,11 @@ const handleCreateCalendar = async (req, res) => {
 
 calendars.post = [delay, identifyCredentials, handleCreateCalendar]
 calendars.put = placeholder('calendars put')
-calendars.delete = placeholder('calendars delete')
+
+const handleDeleteCalendar = async (req, res) => {
+
+}
+
+calendars.id.delete = placeholder('calendars/:id delete')
 
 module.exports = { calendars }

@@ -74,7 +74,7 @@ register.delete = [
   delay,
   identifyCredentials,
   (req, res) => {
-    // Validation: <bearer> exists
+    // Authorization: <bearer> exists
     if (!req.verified?.uid) {
       return res.status(400).json({ error: 'Invalid identification.' })
     }

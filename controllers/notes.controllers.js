@@ -5,7 +5,7 @@ const { updateNote, getNote, deleteNote } = require('../shared/database')
 const notes = {}
 
 const handleGet = (req, res) => {
-  // Validation: author = <bearer>, handled in query
+  // Authorization: author = <bearer>, handled in query
   getNote({ noteId: req.params.id, authorId: req.verified.uid })
     .then(user => res.json(user))
     .catch(error => res.status(403).json({ error: error.message }))
@@ -14,7 +14,7 @@ const handleGet = (req, res) => {
 notes.get = [delay, identifyCredentials, handleGet]
 
 const handlePut = (req, res) => {
-  // Validation: author = <bearer>, handled in query
+  // Authorization: author = <bearer>, handled in query
   updateNote({
     noteId: req.params.id,
     authorId: req.verified.uid,
@@ -30,7 +30,7 @@ const handlePut = (req, res) => {
 notes.put = [delay, identifyCredentials, handlePut]
 
 const handleDelete = (req, res) => {
-  // Validation: author = <bearer>, handled in query
+  // Authorization: author = <bearer>, handled in query
   deleteNote({
     noteId: req.params.id,
     authorId: req.verified.uid,
