@@ -395,63 +395,6 @@
 			"response": []
 		},
 		{
-			"name": "Delete calendar",
-			"event": [
-				{
-					"listen": "test",
-					"script": {
-						"exec": [
-							"pm.test(\"Deleted sample calendar\", function () {\r",
-							"    const json = pm.response.json()\r",
-							"    pm.response.to.have.status(200);\r",
-							"    pm.expect(json).to.be.an('array').with.lengthOf(1)\r",
-							"    pm.expect(json[0]).to.include({calendar_id: pm.collectionVariables.get('created-calendar')})\r",
-							"    pm.expect(json[0]).to.include({etag: pm.collectionVariables.get('created-etag')})\r",
-							"});"
-						],
-						"type": "text/javascript"
-					}
-				},
-				{
-					"listen": "prerequest",
-					"script": {
-						"exec": [],
-						"type": "text/javascript"
-					}
-				}
-			],
-			"request": {
-				"method": "DELETE",
-				"header": [],
-				"body": {
-					"mode": "raw",
-					"raw": "{\r\n    \"etag\": {{created-etag}}\r\n}",
-					"options": {
-						"raw": {
-							"language": "json"
-						}
-					}
-				},
-				"url": {
-					"raw": "{{domain}}/calendars/:id",
-					"host": [
-						"{{domain}}"
-					],
-					"path": [
-						"calendars",
-						":id"
-					],
-					"variable": [
-						{
-							"key": "id",
-							"value": "{{created-calendar}}"
-						}
-					]
-				}
-			},
-			"response": []
-		},
-		{
 			"name": "Shouldn't delete another's calendar",
 			"event": [
 				{
@@ -507,27 +450,36 @@
 		},
 		{
 			"name": "Modify calendar",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"const json = pm.response.json()\r",
+							"pm.collectionVariables.set('updated-etag', json[0].etag)\r",
+							"console.log('etag updated from ' + pm.collectionVariables.get('created-etag') + ' to '\r",
+							" + pm.collectionVariables.get('updated-etag'))\r",
+							"pm.test(\"Successfully modified calendar\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"    pm.expect(json[0]).to.include({summary: 'Updated summary'})\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
 			"request": {
 				"method": "PUT",
 				"header": [],
-				"url": {
-					"raw": "{{domain}}/calendars/{{created-calendar}}",
-					"host": [
-						"{{domain}}"
-					],
-					"path": [
-						"calendars",
-						"{{created-calendar}}"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "Shouldn't delete outdated etag",
-			"request": {
-				"method": "DELETE",
-				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"etag\": {{created-etag}},\r\n    \"summary\": \"Updated summary\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
 				"url": {
 					"raw": "{{domain}}/calendars/:id",
 					"host": [
@@ -540,7 +492,170 @@
 					"variable": [
 						{
 							"key": "id",
-							"value": "123"
+							"value": "{{created-calendar}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Shouldn't modify private calendar",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"const json = pm.response.json()\r",
+							"pm.test(\"Shouldn't modify private calendar\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"    pm.expect(json).to.be.an('array').with.lengthOf(0)\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "PUT",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"etag\": \"69385036\",\r\n    \"summary\": \"Updated summary\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{domain}}/calendars/:id",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"calendars",
+						":id"
+					],
+					"variable": [
+						{
+							"key": "id",
+							"value": "jd123"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Shouldn't delete outdated etag",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Outdated etag cannot be used to delete\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"    pm.expect(pm.response.json()).to.be.an('array').with.lengthOf(0)\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"etag\": {{created-etag}}\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{domain}}/calendars/:id",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"calendars",
+						":id"
+					],
+					"variable": [
+						{
+							"key": "id",
+							"value": "{{created-calendar}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Delete with new etag",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Deleted sample calendar\", function () {\r",
+							"    const json = pm.response.json()\r",
+							"    pm.response.to.have.status(200);\r",
+							"    pm.expect(json).to.be.an('array').with.lengthOf(1)\r",
+							"    pm.expect(json[0]).to.include({calendar_id: pm.collectionVariables.get('created-calendar')})\r",
+							"    pm.expect(json[0]).to.include({etag: pm.collectionVariables.get('updated-etag')})\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"etag\": {{updated-etag}}\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{domain}}/calendars/:id",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"calendars",
+						":id"
+					],
+					"variable": [
+						{
+							"key": "id",
+							"value": "{{created-calendar}}"
 						}
 					]
 				}
@@ -584,6 +699,10 @@
 		},
 		{
 			"key": "created-etag",
+			"value": ""
+		},
+		{
+			"key": "updated-etag",
 			"value": ""
 		}
 	]

@@ -5,7 +5,7 @@ const { calendars } = require('../controllers/calendars.controllers')
 router
   .get('/', calendars.get)
   .post('/', calendars.post)
-  .put('/:id', calendars.put)
-  .delete('/:calendarId', calendars.id.delete)
+  .put('/:id', calendars.id.put)
+  .delete('/:id', calendars.id.delete)
 
 module.exports = router

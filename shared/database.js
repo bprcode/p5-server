@@ -305,6 +305,16 @@ async function deleteCalendar({ calendarId, authorId, etag }) {
   return result.rows
 }
 
+async function updateCalendar({ calendarId, authorId, etag, summary }) {
+  const result = await pool.query(
+    'UPDATE calendars SET summary = $4::text WHERE ' +
+    'calendar_id = $1::text AND primary_author_id = $2::text AND '+
+    'etag = $3::text RETURNING *',
+    [calendarId, authorId, etag, summary]
+  )
+  return result.rows
+}
+
 module.exports = {
   transactRegistration,
   deleteRegistration,
@@ -317,4 +327,5 @@ module.exports = {
   getCalendarList,
   addCalendar,
   deleteCalendar,
+  updateCalendar,
 }
