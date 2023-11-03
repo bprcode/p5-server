@@ -1,0 +1,416 @@
+{
+	"info": {
+		"_postman_id": "583e0025-da91-4146-93d3-35cae4ec613b",
+		"name": "Catalog Flow",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "30802510"
+	},
+	"item": [
+		{
+			"name": "Shouldn't add without login",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Shouldn't post catalog entry without login\", function () {\r",
+							"    pm.response.to.have.status(403);\r",
+							"    pm.expect(pm.response.json()).to.include({error: 'No identification provided.'})\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"key\": \"456\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{domain}}/calendars",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"calendars"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Login Shelton",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Log in sample user\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"    pm.expect(pm.response.json()).to.include({name: 'Shelton Dredder'})\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"email\": \"shredman1212@slice.dice\",\r\n    \"password\": \"oozy123\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{domain}}/login",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"login"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Retrieve calendar list",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Retrieved sample user's calendar list\", function () {\r",
+							"    const json = pm.response.json()\r",
+							"    pm.response.to.have.status(200);\r",
+							"    pm.expect(json).to.be.an('array')\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{domain}}/calendars",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"calendars"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Add calendar",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"pm.collectionVariables.set('example-idem', pm.collectionVariables.replaceIn('{{$randomBankAccount}}'))\r",
+							"pm.collectionVariables.set('example-summary', pm.collectionVariables.replaceIn('{{$randomLoremWords}}'))"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"const json = pm.response.json()\r",
+							"pm.collectionVariables.set('created-calendar', json.calendar_id)\r",
+							"\r",
+							"pm.test(\"Calendar created\", function () {\r",
+							"    pm.response.to.have.status(200)\r",
+							"    pm.expect(json).to.include({summary: pm.collectionVariables.get('example-summary')})\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"key\": \"{{example-idem}}\",\r\n    \"summary\": \"{{example-summary}}\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{domain}}/calendars",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"calendars"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Check updated catalog",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"New calendar shows in catalog\", function () {\r",
+							"    const json = pm.response.json()\r",
+							"    pm.response.to.have.status(200);\r",
+							"    pm.expect(json).to.be.an('array')\r",
+							"    const someTest = json.some(e => e.summary === pm.collectionVariables.get('example-summary'))\r",
+							"    pm.expect(someTest).to.be.true\r",
+							"    pm.collectionVariables.set('retrieved-length', json.length)\r",
+							"    console.log('Catalog length=', json.length)\r",
+							"})"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{domain}}/calendars",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"calendars"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Add duplicate calendar",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"pm.collectionVariables.set('example-summary', pm.collectionVariables.replaceIn('{{$randomLoremWords}}'))"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"const json = pm.response.json()\r",
+							"pm.collectionVariables.set('created-calendar', json.calendar_id)\r",
+							"\r",
+							"pm.test(\"Calendar created\", function () {\r",
+							"    pm.response.to.have.status(200)\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"key\": \"{{example-idem}}\",\r\n    \"summary\": \"{{example-summary}}\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{domain}}/calendars",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"calendars"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Shouldn't duplicate idem creation",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Duplicate creation does not increase catalog length\", function () {\r",
+							"    const json = pm.response.json()\r",
+							"    pm.response.to.have.status(200);\r",
+							"    pm.expect(json).to.be.an('array')\r",
+							"    pm.expect(json.length).to.equal(pm.collectionVariables.get('retrieved-length'))\r",
+							"})"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{domain}}/calendars",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"calendars"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Logout",
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"url": {
+					"raw": "{{domain}}/login",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"login"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Modify calendar",
+			"request": {
+				"method": "PUT",
+				"header": [],
+				"url": {
+					"raw": "{{domain}}/users/catalog/:id",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"users",
+						"catalog",
+						":id"
+					],
+					"variable": [
+						{
+							"key": "id",
+							"value": "123"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Delete calendar",
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"url": {
+					"raw": "{{domain}}/users/catalog/:id",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"users",
+						"catalog",
+						":id"
+					],
+					"variable": [
+						{
+							"key": "id",
+							"value": "123"
+						}
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"variable": [
+		{
+			"key": "example-summary",
+			"value": ""
+		},
+		{
+			"key": "example-idem",
+			"value": ""
+		},
+		{
+			"key": "created-calendar",
+			"value": ""
+		},
+		{
+			"key": "retrieved-length",
+			"value": ""
+		}
+	]
+}

@@ -3,15 +3,9 @@ const { identifyCredentials } = require('../shared/authorization')
 const {
   listNotes,
   addNoteIdempotent,
-  getCatalog,
 } = require('../shared/database')
 
 const notebook = {}
-const catalog = {}
-const placeholder = tag => (req, res) =>
-  res
-    .status(418)
-    .send(tag + ' placeholder' + (req.params.id ? ` (${req.params.id})` : ''))
 
 const handleNotebookGet = (req, res) => {
   // Validation: path-id = <bearer>
@@ -47,27 +41,4 @@ const handleNotebookPost = (req, res) => {
 
 notebook.post = [delay, identifyCredentials, handleNotebookPost]
 
-const handleCatalogGet = async (req, res) => {
-  log(`Retrieving catalog for ${req.verified.uid}`)
-  const result = await getCatalog(req.verified.uid)
-  res.json(result)
-}
-
-catalog.get = [delay, identifyCredentials, handleCatalogGet]
-
-const handleCatalogPost = (req, res) => {
-  const foo = () => log('foo')
-  try{
-    foo(req.verified.uid)
-  } catch(e) {
-    log('caught error in post handler')
-    res.status(400).json({error: 'Login required before adding calendar.'})
-     
-  }
-}
-
-catalog.post = [ delay, identifyCredentials, handleCatalogPost]
-catalog.put = placeholder('catalog put')
-catalog.delete = placeholder('catalog delete')
-
-module.exports = { notebook, catalog }
+module.exports = { notebook }
