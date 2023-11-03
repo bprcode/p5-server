@@ -246,7 +246,6 @@ async function addNoteIdempotent(key, uid, note) {
 }
 
 async function addCalendar({ key, authorId, summary }) {
-  log('Acquiring add-client', yellow)
   // Periodically prune old records:
   if (Math.random() < 0.05) {
     log('deleting old records')
@@ -266,7 +265,9 @@ async function addCalendar({ key, authorId, summary }) {
     }
 
     // Otherwise, generate a new identifier:
-    const calendarId = await generateUnusedId('calendars', 'calendar_id', { client })
+    const calendarId = await generateUnusedId('calendars', 'calendar_id', {
+      client,
+    })
 
     const created = await client
       .query(
@@ -293,6 +294,17 @@ async function addCalendar({ key, authorId, summary }) {
   }
 }
 
+async function deleteCalendar({ calendarId, authorId, etag }) {
+  const result = await pool.query(
+    'DELETE FROM calendars WHERE ' +
+      'calendar_id = $1::text AND ' +
+      'primary_author_id = $2::text AND etag = $3::text ' +
+      'RETURNING *',
+    [calendarId, authorId, etag]
+  )
+  return result.rows
+}
+
 module.exports = {
   transactRegistration,
   deleteRegistration,
@@ -304,4 +316,5 @@ module.exports = {
   addNoteIdempotent,
   getCalendarList,
   addCalendar,
+  deleteCalendar,
 }

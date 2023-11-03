@@ -8,7 +8,7 @@ const {
 const notebook = {}
 
 const handleNotebookGet = (req, res) => {
-  // Validation: path-id = <bearer>
+  // Authorization: path-id = <bearer>
   if (req.verified.uid !== req.params.id) {
     log('denied: ', blue, req.verified.uid, ' !== ', yellow, req.params.id)
     return res.status(403).json({ error: 'Permission denied.' })
@@ -21,8 +21,8 @@ const handleNotebookGet = (req, res) => {
 notebook.get = [delay, identifyCredentials, handleNotebookGet]
 
 const handleNotebookPost = (req, res) => {
-  // Validation:  path-id = <bearer>,
-  //              body.key exists
+  // Authorization: path-id = <bearer>,
+  //                body.key exists
   if (req.verified.uid !== req.params.id || !req.body.key) {
     log('denied note creation in ', pink, req.params.id)
     return res.status(403).json({ error: 'Permission denied.' })

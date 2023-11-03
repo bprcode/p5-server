@@ -3,6 +3,7 @@ const { identifyCredentials } = require('../shared/authorization')
 const {
   getCalendarList,
   addCalendar,
+  deleteCalendar,
 } = require('../shared/database')
 
 const calendars = { id: { events: { id: {} }} }
@@ -38,12 +39,29 @@ const handleCreateCalendar = async (req, res) => {
 }
 
 calendars.post = [delay, identifyCredentials, handleCreateCalendar]
-calendars.put = placeholder('calendars put')
 
 const handleDeleteCalendar = async (req, res) => {
+  // Authorization:
+  // Bearer uid matches primary_author_id, etag matches current value
+  // handled in query.
+  try {
+    if(!req.body.etag) { 
+      throw Error('Missing etag.')
+    }
 
+    const result = await deleteCalendar({
+      authorId: req.verified.uid,
+      calendarId: req.params.calendarId,
+      etag: req.body.etag,
+    })
+    res.json(result)
+  } catch(e) {
+    res.status(400).json({error: e.message })
+  }
 }
 
-calendars.id.delete = placeholder('calendars/:id delete')
+calendars.id.delete = [ delay, identifyCredentials, handleDeleteCalendar ]
+
+calendars.put = placeholder('calendars put')
 
 module.exports = { calendars }

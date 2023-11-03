@@ -69,6 +69,13 @@
 						],
 						"type": "text/javascript"
 					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [],
+						"type": "text/javascript"
+					}
 				}
 			],
 			"request": {
@@ -155,10 +162,13 @@
 						"exec": [
 							"const json = pm.response.json()\r",
 							"pm.collectionVariables.set('created-calendar', json.calendar_id)\r",
+							"pm.collectionVariables.set('created-etag', json.etag)\r",
 							"\r",
 							"pm.test(\"Calendar created\", function () {\r",
 							"    pm.response.to.have.status(200)\r",
 							"    pm.expect(json).to.include({summary: pm.collectionVariables.get('example-summary')})\r",
+							"    pm.expect(json).to.include({primary_author_id: '44ged5Qa'})\r",
+							"    pm.expect(json).to.include.keys('calendar_id', 'etag', 'created', 'updated', 'summary')\r",
 							"});"
 						],
 						"type": "text/javascript"
@@ -328,17 +338,168 @@
 			"response": []
 		},
 		{
-			"name": "Logout",
+			"name": "Shouldn't delete without etag",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Shouldn't delete without etag\", function () {\r",
+							"    const json = pm.response.json()\r",
+							"    pm.response.to.have.status(400);\r",
+							"    pm.expect(json).to.include({error: 'Missing etag.'})\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
 			"request": {
 				"method": "DELETE",
 				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"foo\": \"bar\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
 				"url": {
-					"raw": "{{domain}}/login",
+					"raw": "{{domain}}/calendars/:id",
 					"host": [
 						"{{domain}}"
 					],
 					"path": [
-						"login"
+						"calendars",
+						":id"
+					],
+					"variable": [
+						{
+							"key": "id",
+							"value": "{{created-calendar}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Delete calendar",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Deleted sample calendar\", function () {\r",
+							"    const json = pm.response.json()\r",
+							"    pm.response.to.have.status(200);\r",
+							"    pm.expect(json).to.be.an('array').with.lengthOf(1)\r",
+							"    pm.expect(json[0]).to.include({calendar_id: pm.collectionVariables.get('created-calendar')})\r",
+							"    pm.expect(json[0]).to.include({etag: pm.collectionVariables.get('created-etag')})\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"etag\": {{created-etag}}\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{domain}}/calendars/:id",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"calendars",
+						":id"
+					],
+					"variable": [
+						{
+							"key": "id",
+							"value": "{{created-calendar}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Shouldn't delete another's calendar",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Shouldn't delete another user's calendar\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"    pm.expect(pm.response.json()).to.be.an('array').with.lengthOf(0)\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"etag\": \"69385036\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{domain}}/calendars/:id",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"calendars",
+						":id"
+					],
+					"variable": [
+						{
+							"key": "id",
+							"value": "jd123"
+						}
 					]
 				}
 			},
@@ -350,13 +511,30 @@
 				"method": "PUT",
 				"header": [],
 				"url": {
-					"raw": "{{domain}}/users/catalog/:id",
+					"raw": "{{domain}}/calendars/{{created-calendar}}",
 					"host": [
 						"{{domain}}"
 					],
 					"path": [
-						"users",
-						"catalog",
+						"calendars",
+						"{{created-calendar}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Shouldn't delete outdated etag",
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"url": {
+					"raw": "{{domain}}/calendars/:id",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"calendars",
 						":id"
 					],
 					"variable": [
@@ -370,25 +548,17 @@
 			"response": []
 		},
 		{
-			"name": "Delete calendar",
+			"name": "Logout",
 			"request": {
 				"method": "DELETE",
 				"header": [],
 				"url": {
-					"raw": "{{domain}}/users/catalog/:id",
+					"raw": "{{domain}}/login",
 					"host": [
 						"{{domain}}"
 					],
 					"path": [
-						"users",
-						"catalog",
-						":id"
-					],
-					"variable": [
-						{
-							"key": "id",
-							"value": "123"
-						}
+						"login"
 					]
 				}
 			},
@@ -410,6 +580,10 @@
 		},
 		{
 			"key": "retrieved-length",
+			"value": ""
+		},
+		{
+			"key": "created-etag",
 			"value": ""
 		}
 	]
