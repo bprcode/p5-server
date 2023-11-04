@@ -4,7 +4,12 @@
   "description": "Token-protected REST route server",
   "main": "app.js",
   "scripts": {
-    "test": "newman run collections/access-flow.json -e collections/dev-environment.json & newman run collections/registration-flow.json -e collections/dev-environment.json & newman run collections/note-flow.json -e collections/dev-environment.json & newman run collections/catalog-flow.json -e collections/dev-environment.json & newman run collections/event-flow.json -e collections/dev-environment.json",
+    "test-access": "newman run collections/access-flow.json -e collections/dev-environment.json",
+    "test-registration": "newman run collections/registration-flow.json -e collections/dev-environment.json",
+    "test-notes": "newman run collections/note-flow.json -e collections/dev-environment.json",
+    "test-catalog": "newman run collections/catalog-flow.json -e collections/dev-environment.json",
+    "test-events": "newman run collections/event-flow.json -e collections/dev-environment.json",
+    "test": "npm run test-access & npm run test-registration & npm run test-notes & npm run test-catalog & npm run test-events",
     "dev": "nodemon app.js",
     "nolag": "nodemon app.js -nolag"
   },
