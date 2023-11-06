@@ -176,6 +176,40 @@ async function listNotes(author) {
   return result.rows
 }
 
+async function listEvents({ uid, calendarId}) {
+  const client = await pool.connect()
+  
+  try {
+    await client.query('BEGIN')
+
+    const author = await client.query(
+      'SELECT primary_author_id FROM calendars WHERE calendar_id = $1::text;',
+      [calendarId]
+    )
+
+    log('checking event list authorship for ', blue, calendarId)
+    log('comparing ' + author.rows[0].primary_author_id + '/' + uid)
+    if(uid !== author.rows[0].primary_author_id) {
+      throw Error('Permission denied for event list.')
+    }
+
+    const events = await client.query(
+      'SELECT * FROM events WHERE calendar_id = $1::text;',
+      [calendarId]
+    )
+
+    return events.rows
+
+  } catch(e) {
+    log('Error retrieving event list:', yellow, e.message)
+    throw e
+    
+  } finally {
+    await client.query('COMMIT')
+    client.release()
+  }
+}
+
 async function deleteOldIdempotencies() {
   const recycled = await pool.query(
     `DELETE FROM idempotency WHERE ` +
@@ -245,6 +279,84 @@ async function addNoteIdempotent(key, uid, note) {
   }
 }
 
+async function addEventIdempotent({ key, uid, calendarId, event }) {
+  const logId = Math.random()
+  console.time(`Add event idempotent ${logId}`)
+  const client = await pool.connect()
+
+  // Periodically prune old records:
+  if (Math.random() < 0.05) {
+    log('deleting old records')
+    await deleteOldIdempotencies()
+  }
+
+  try {
+    await client.query('BEGIN')
+
+    // Check that the bearer has permission to add to this calendar:
+    const calendar = await client.query(
+      'SELECT primary_author_id FROM calendars WHERE calendar_id = $1::text',
+      [calendarId]
+    )
+
+    log(
+      'comparing calendar authorship: ',
+      blue,
+      uid,'/',
+      calendar.rows[0].primary_author_id
+    )
+    if (uid !== calendar.rows[0].primary_author_id) {
+      throw Error('Permission denied for calendar.')
+    }
+
+    // If a previous result exists, return it
+    const previous = await checkIdempotency({ key, uid, client })
+
+    if (previous) {
+      log('already had event: ', key, uid)
+      return previous.outcome
+    }
+
+    // Otherwise, create the event
+    const eventId = await generateUnusedId('events', 'event_id', { client })
+    const created = await client
+      .query(
+        'INSERT INTO events (event_id, summary, description, ' +
+          'start_time, end_time, color_id, calendar_id) ' +
+          'VALUES ($1::text, $2::text, $3::text, ' +
+          '$4::timestamptz, $5::timestamptz, ' +
+          '$6::text, $7::text) RETURNING *',
+        [
+          eventId,
+          event.summary,
+          event.description,
+          event.start_time,
+          event.end_time,
+          event.color_id,
+          calendarId,
+        ]
+      )
+      .then(result => result.rows[0])
+
+    // Record the result in the idempotency table
+    await client.query(
+      'INSERT INTO idempotency (idem_key, uid, outcome) ' +
+        'VALUES ($1::text, $2::text, $3::jsonb) RETURNING outcome',
+      [key, uid, created]
+    )
+
+    return created
+  } catch (e) {
+    await client.query('ROLLBACK')
+    log('<< rolling back...', yellow)
+    throw e
+  } finally {
+    await client.query('COMMIT')
+    console.timeEnd(`Add event idempotent ${logId}`)
+    client.release()
+  }
+}
+
 async function addCalendar({ key, authorId, summary }) {
   // Periodically prune old records:
   if (Math.random() < 0.05) {
@@ -308,8 +420,8 @@ async function deleteCalendar({ calendarId, authorId, etag }) {
 async function updateCalendar({ calendarId, authorId, etag, summary }) {
   const result = await pool.query(
     'UPDATE calendars SET summary = $4::text WHERE ' +
-    'calendar_id = $1::text AND primary_author_id = $2::text AND '+
-    'etag = $3::text RETURNING *',
+      'calendar_id = $1::text AND primary_author_id = $2::text AND ' +
+      'etag = $3::text RETURNING *',
     [calendarId, authorId, etag, summary]
   )
   return result.rows
@@ -328,4 +440,6 @@ module.exports = {
   addCalendar,
   deleteCalendar,
   updateCalendar,
+  listEvents,
+  addEventIdempotent,
 }

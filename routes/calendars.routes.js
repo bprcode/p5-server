@@ -7,8 +7,8 @@ router
   .post('/', calendars.post)
   .put('/:id', calendars.id.put)
   .delete('/:id', calendars.id.delete)
-  .get('/:calendarId/events', calendars.id.events.get)
-  .post('/:calendarId/events', calendars.id.events.post)
+  .get('/:id/events', calendars.id.events.get)
+  .post('/:id/events', calendars.id.events.post)
   .put('/:calendarId/events/:eventId', calendars.id.events.id.put)
   .delete('/:calendarId/events/:eventId', calendars.id.events.id.delete)
 

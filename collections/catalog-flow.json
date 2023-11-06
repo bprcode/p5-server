@@ -466,6 +466,13 @@
 						],
 						"type": "text/javascript"
 					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [],
+						"type": "text/javascript"
+					}
 				}
 			],
 			"request": {
@@ -568,6 +575,13 @@
 							"    pm.expect(pm.response.json()).to.be.an('array').with.lengthOf(0)\r",
 							"});"
 						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [],
 						"type": "text/javascript"
 					}
 				}
