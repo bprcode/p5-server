@@ -10,6 +10,7 @@ const indexRoutes = require('./routes/index.routes')
 const usersRoutes = require('./routes/users.routes')
 const notesRoutes = require('./routes/notes.routes')
 const calendarsRoutes = require('./routes/calendars.routes')
+const { SpecificError } = require('./shared/error-types')
 
 app
   .disable('x-powered-by')
@@ -56,9 +57,14 @@ app
   })
 
   .use((err, req, res, next) => {
-    res.status(500).send('⚠️ Server Error:<br>' + err.message)
-    log('Server error encountered: ', pink, err.message)
+    if (err instanceof SpecificError) {
+      log('Handling SpecificError descendant: ',blue, err.name)
+      return res.status(err.code).json({ error: err.message})
+    }
+
+    log('Unrecognized error encountered: ', pink, err.message)
     log(err.stack)
+    res.status(500).send('⚠️ Server Error:<br>' + err.message)
   })
 
 const server = app.listen(process.env.PORT || 3000, () => {

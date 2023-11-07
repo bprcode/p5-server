@@ -22,7 +22,7 @@
 					"listen": "test",
 					"script": {
 						"exec": [
-							"pm.test(\"Status code is 200\", function () {\r",
+							"pm.test(\"Log in sample user\", function () {\r",
 							"    pm.response.to.have.status(200);\r",
 							"    const json = pm.response.json()\r",
 							"    pm.expect(json).to.include({email: pm.collectionVariables.get('sample-userkey')})\r",
@@ -109,14 +109,17 @@
 			"response": []
 		},
 		{
-			"name": "Create event",
+			"name": "Shouldn't create in another's calendar",
 			"event": [
 				{
 					"listen": "test",
 					"script": {
 						"exec": [
-							"pm.test(\"Placeholder test\", function () {\r",
-							"    pm.response.to.have.status(418);\r",
+							"const json = pm.response.json()\r",
+							"\r",
+							"pm.test(\"Shouldn't create in another's calendar\", function () {\r",
+							"    pm.response.to.have.status(400);\r",
+							"    pm.expect(json).to.include({error: 'Permission denied for calendar.'})\r",
 							"});"
 						],
 						"type": "text/javascript"
@@ -125,7 +128,15 @@
 				{
 					"listen": "prerequest",
 					"script": {
-						"exec": [],
+						"exec": [
+							"pm.collectionVariables.set('idem-key', pm.collectionVariables.replaceIn('{{$randomInt}}{{$randomInt}}'))\r",
+							"\r",
+							"const startTime = new Date(Date.now() - Math.random() * 1000 * 60 * 10)\r",
+							"const endTime = new Date(Date.now() + Math.random() * 1000 * 60 * 10)\r",
+							"\r",
+							"pm.collectionVariables.set('start-time', startTime.toISOString())\r",
+							"pm.collectionVariables.set('end-time', endTime.toISOString())"
+						],
 						"type": "text/javascript"
 					}
 				}
@@ -133,6 +144,80 @@
 			"request": {
 				"method": "POST",
 				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"key\": \"{{idem-key}}\",\r\n    \"start_time\": \"{{start-time}}\",\r\n    \"end_time\": \"{{end-time}}\",\r\n    \"summary\": \"{{$randomCatchPhrase}}\",\r\n    \"description\": \"{{$randomLoremSentence}}\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{domain}}/calendars/:calendarId/events",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"calendars",
+						":calendarId",
+						"events"
+					],
+					"variable": [
+						{
+							"key": "calendarId",
+							"value": "jd123"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Shouldn't accept incomplete creation",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"const json = pm.response.json()\r",
+							"\r",
+							"pm.test(\"Shouldn't allow incomplete creation\", function () {\r",
+							"    pm.response.to.have.status(400);\r",
+							"    pm.expect(json).to.include({error: 'Time range not specified.'})\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"pm.collectionVariables.set('idem-key', pm.collectionVariables.replaceIn('{{$randomInt}}{{$randomInt}}'))\r",
+							"\r",
+							"const startTime = new Date(Date.now() - Math.random() * 1000 * 60 * 10)\r",
+							"const endTime = new Date(Date.now() + Math.random() * 1000 * 60 * 10)\r",
+							"\r",
+							"pm.collectionVariables.set('start-time', startTime.toISOString())\r",
+							"pm.collectionVariables.set('end-time', endTime.toISOString())"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"key\": \"{{idem-key}}\",\r\n    \"end_time\": \"{{end-time}}\",\r\n    \"summary\": \"{{$randomCatchPhrase}}\",\r\n    \"description\": \"{{$randomLoremSentence}}\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
 				"url": {
 					"raw": "{{domain}}/calendars/:calendarId/events",
 					"host": [
@@ -154,14 +239,20 @@
 			"response": []
 		},
 		{
-			"name": "Event list",
+			"name": "Create event in own calendar",
 			"event": [
 				{
 					"listen": "test",
 					"script": {
 						"exec": [
-							"pm.test(\"Placeholder test\", function () {\r",
-							"    pm.response.to.have.status(418);\r",
+							"const json = pm.response.json()\r",
+							"pm.collectionVariables.set('event-etag', json.etag)\r",
+							"\r",
+							"pm.test(\"Create event in own calendar\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"    pm.expect(json).to.include({start_time: pm.collectionVariables.get('start-time')})\r",
+							"    pm.expect(json).to.include({end_time: pm.collectionVariables.get('end-time')})\r",
+							"    pm.expect(json).to.include({calendar_id: pm.collectionVariables.get('current-calendar')})\r",
 							"});"
 						],
 						"type": "text/javascript"
@@ -170,7 +261,189 @@
 				{
 					"listen": "prerequest",
 					"script": {
-						"exec": [],
+						"exec": [
+							"pm.collectionVariables.set('idem-key', pm.collectionVariables.replaceIn('{{$randomInt}}{{$randomInt}}'))\r",
+							"\r",
+							"const startTime = new Date(Date.now() - Math.random() * 1000 * 60 * 10)\r",
+							"const endTime = new Date(Date.now() + Math.random() * 1000 * 60 * 10)\r",
+							"\r",
+							"pm.collectionVariables.set('start-time', startTime.toISOString())\r",
+							"pm.collectionVariables.set('end-time', endTime.toISOString())"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"key\": \"{{idem-key}}\",\r\n    \"start_time\": \"{{start-time}}\",\r\n    \"end_time\": \"{{end-time}}\",\r\n    \"summary\": \"{{$randomCatchPhrase}}\",\r\n    \"description\": \"{{$randomLoremSentence}}\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{domain}}/calendars/:calendarId/events",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"calendars",
+						":calendarId",
+						"events"
+					],
+					"variable": [
+						{
+							"key": "calendarId",
+							"value": "{{current-calendar}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Duplicate idem query returns prior result",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"const json = pm.response.json()\r",
+							"\r",
+							"pm.test(\"Duplicate creation returns prior etag and record\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"    pm.expect(json).to.include({etag: pm.collectionVariables.get('event-etag')})\r",
+							"    pm.expect(json).to.not.include({start_time: pm.collectionVariables.get('start-time')})\r",
+							"    pm.expect(json).to.not.include({end_time: pm.collectionVariables.get('end-time')})\r",
+							"    pm.expect(json).to.include({calendar_id: pm.collectionVariables.get('current-calendar')})\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"const startTime = new Date(Date.now() - Math.random() * 1000 * 60 * 10)\r",
+							"const endTime = new Date(Date.now() + Math.random() * 1000 * 60 * 10)\r",
+							"\r",
+							"pm.collectionVariables.set('start-time', startTime.toISOString())\r",
+							"pm.collectionVariables.set('end-time', endTime.toISOString())"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"key\": \"{{idem-key}}\",\r\n    \"start_time\": \"{{start-time}}\",\r\n    \"end_time\": \"{{end-time}}\",\r\n    \"summary\": \"{{$randomCatchPhrase}}\",\r\n    \"description\": \"{{$randomLoremSentence}}\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{domain}}/calendars/:calendarId/events",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"calendars",
+						":calendarId",
+						"events"
+					],
+					"variable": [
+						{
+							"key": "calendarId",
+							"value": "{{current-calendar}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Shouldn't get another's event list",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Shouldn't get another's event list\", function () {\r",
+							"    pm.response.to.have.status(400);\r",
+							"    pm.expect(pm.response.json()).to.include({error: \"Permission denied for event list.\"})\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{domain}}/calendars/:calendarId/events",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"calendars",
+						":calendarId",
+						"events"
+					],
+					"variable": [
+						{
+							"key": "calendarId",
+							"value": "jd123"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get own event list",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Retrieve own event list\", function () {\r",
+							"    const json = pm.response.json()\r",
+							"    pm.response.to.have.status(200);\r",
+							"    pm.expect(json).to.be.an('array')\r",
+							"    const etagMatch = json.find(e => e.etag === pm.collectionVariables.get('event-etag'))\r",
+							"    pm.expect(etagMatch).to.be.ok\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
 						"type": "text/javascript"
 					}
 				}
@@ -265,7 +538,9 @@
 				{
 					"listen": "prerequest",
 					"script": {
-						"exec": [],
+						"exec": [
+							""
+						],
 						"type": "text/javascript"
 					}
 				}
@@ -293,6 +568,39 @@
 							"key": "eventId",
 							"value": "123"
 						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get updated calendar etag",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Get latest calendar etag\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"    const json = pm.response.json()\r",
+							"    const match = json.find(r => r.calendar_id === pm.collectionVariables.get('current-calendar'))\r",
+							"    pm.collectionVariables.set('calendar-etag', match.etag)\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{domain}}/calendars",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"calendars"
 					]
 				}
 			},
@@ -397,6 +705,18 @@
 		},
 		{
 			"key": "calendar-etag",
+			"value": ""
+		},
+		{
+			"key": "start-time",
+			"value": ""
+		},
+		{
+			"key": "end-time",
+			"value": ""
+		},
+		{
+			"key": "event-etag",
 			"value": ""
 		}
 	]

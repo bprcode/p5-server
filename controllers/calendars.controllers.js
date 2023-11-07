@@ -8,13 +8,12 @@ const {
   listEvents,
   addEventIdempotent,
 } = require('../shared/database')
+const { RequestError } = require('../shared/error-types')
 
-const calendars = { id: { events: { id: {} }} }
+const calendars = { id: { events: { id: {} } } }
 
 const placeholder = tag => (req, res) =>
-  res
-    .status(418)
-    .send(tag + ' placeholder')
+  res.status(418).send(tag + ' placeholder')
 
 const handleListCalendars = async (req, res) => {
   log(`Retrieving catalog for ${req.verified.uid}`)
@@ -25,20 +24,15 @@ const handleListCalendars = async (req, res) => {
 calendars.get = [delay, identifyCredentials, handleListCalendars]
 
 const handleCreateCalendar = async (req, res) => {
-  try {
-    if (!req.body.key) {
-      throw Error('No idempotency key specified.')
-    }
-    const result = await addCalendar({
-      key: req.body.key,
-      authorId: req.verified.uid,
-      summary: req.body.summary || 'New Calendar',
-    })
-    res.json(result)
-  } catch (e) {
-    log('caught error in post handler:', e.message)
-    res.status(400).json({ error: e.message })
+  if (!req.body.key) {
+    throw new RequestError('No idempotency key specified.')
   }
+  const result = await addCalendar({
+    key: req.body.key,
+    authorId: req.verified.uid,
+    summary: req.body.summary || 'New Calendar',
+  })
+  res.json(result)
 }
 
 calendars.post = [delay, identifyCredentials, handleCreateCalendar]
@@ -47,30 +41,26 @@ const handleDeleteCalendar = async (req, res) => {
   // Authorization:
   // Bearer uid matches primary_author_id, etag matches current value
   // handled in query.
-  try {
-    if(!req.body.etag) { 
-      throw Error('Missing etag.')
-    }
-
-    const result = await deleteCalendar({
-      authorId: req.verified.uid,
-      calendarId: req.params.id,
-      etag: req.body.etag,
-    })
-    res.json(result)
-  } catch(e) {
-    res.status(400).json({error: e.message })
+  if (!req.body.etag) {
+    throw new RequestError('Missing etag.')
   }
+
+  const result = await deleteCalendar({
+    authorId: req.verified.uid,
+    calendarId: req.params.id,
+    etag: req.body.etag,
+  })
+  res.json(result)
 }
 
-calendars.id.delete = [ delay, identifyCredentials, handleDeleteCalendar ]
+calendars.id.delete = [delay, identifyCredentials, handleDeleteCalendar]
 
 const handleUpdateCalendar = async (req, res) => {
   // Authorization:
   // Bearer uid matches primary_author_id, etag matches current value
   // handled in query.
   try {
-    if(!req.body.etag) {
+    if (!req.body.etag) {
       throw Error('Missing etag.')
     }
 
@@ -78,25 +68,25 @@ const handleUpdateCalendar = async (req, res) => {
       authorId: req.verified.uid,
       calendarId: req.params.id,
       etag: req.body.etag,
-      summary: req.body.summary || ''
+      summary: req.body.summary || '',
     })
     res.json(result)
-  } catch(e) {
-    res.status(400).json({error: e.message})
+  } catch (e) {
+    res.status(400).json({ error: e.message })
   }
 }
 
-calendars.id.put = [ delay, identifyCredentials, handleUpdateCalendar ]
+calendars.id.put = [delay, identifyCredentials, handleUpdateCalendar]
 
 const handleCreateEvent = async (req, res) => {
   // Authorization:
   // Bearer uid matches primary_author_id of calendar
   // handled in transaction
   try {
-    if(!req.body.key) {
+    if (!req.body.key) {
       throw Error('Idempotency key not specified.')
     }
-    if(!req.body.start_time || !req.body.end_time) {
+    if (!req.body.start_time || !req.body.end_time) {
       throw Error('Time range not specified.')
     }
 
@@ -113,14 +103,12 @@ const handleCreateEvent = async (req, res) => {
       },
     })
     res.json(result)
-
-  } catch(e) {
-    res.status(400).json({error: e.message})
+  } catch (e) {
+    res.status(400).json({ error: e.message })
   }
-
 }
 
-calendars.id.events.post = [ delay, identifyCredentials, handleCreateEvent ]
+calendars.id.events.post = [delay, identifyCredentials, handleCreateEvent]
 
 const handleListEvents = async (req, res) => {
   try {
@@ -128,16 +116,16 @@ const handleListEvents = async (req, res) => {
     // bearer uid matches primary_author_id of calendar
     const result = await listEvents({
       uid: req.verified.uid,
-      calendarId: req.params.id
+      calendarId: req.params.id,
     })
 
     res.json(result)
-  } catch(e) {
-    res.status(400).json({error: e.message})
+  } catch (e) {
+    res.status(400).json({ error: e.message })
   }
 }
 
-calendars.id.events.get = [ delay, identifyCredentials, handleListEvents ]
+calendars.id.events.get = [delay, identifyCredentials, handleListEvents]
 
 calendars.id.events.id.put = placeholder('modify event')
 calendars.id.events.id.delete = placeholder('delete event')

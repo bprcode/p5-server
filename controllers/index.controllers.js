@@ -9,6 +9,7 @@ const {
   transactRegistration,
   deleteRegistration,
 } = require('../shared/database')
+const { PermissionError, ConflictError } = require('../shared/error-types')
 
 const me = {}
 const login = {}
@@ -49,7 +50,7 @@ login.post = [
       })
     }
 
-    res.status(403).send({ error: 'Invalid credentials.' })
+    throw new PermissionError('Invalid credentials.')
   },
 ]
 
@@ -75,9 +76,6 @@ register.delete = [
   identifyCredentials,
   (req, res) => {
     // Authorization: <bearer> exists
-    if (!req.verified?.uid) {
-      return res.status(400).json({ error: 'Invalid identification.' })
-    }
     log('Trying to delete registration: ', yellow, req.verified.uid)
     deleteRegistration(req.verified.uid)
       .then(() => res.send())
@@ -95,12 +93,8 @@ register.post = [
     const { email, password } = req.body
     log('Attempting to create or use login: ', pink, email)
 
-    try {
-      // Attempt to register an account. Discard the result.
-      await transactRegistration(req.body)
-    } catch (e) {
-      log('encountered registration error: ', e.message)
-    }
+    // Attempt to register an account. Discard the result.
+    await transactRegistration(req.body)
 
     // Regardless of success, try to log in using the provided credentials:
     const outcome = await requestToken(email, password)
@@ -116,7 +110,7 @@ register.post = [
     }
 
     log('Unable to use: ', pink, email)
-    res.status(409).json({ error: 'email already in use.' })
+    throw new ConflictError('email already in use.')
   },
 ]
 

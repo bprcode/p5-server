@@ -1,6 +1,7 @@
 require('@bprcode/handy')
 const jwt = require('jsonwebtoken')
 const { matchCredentials } = require('./database')
+const { PermissionError } = require('./error-types')
 
 const cookieSeconds = 60 * 2
 
@@ -11,7 +12,7 @@ const cookieSeconds = 60 * 2
 const identifyCredentials = async (req, res, next) => {
   if (!req.cookies.token) {
     log('❔ No cookie.')
-    return res.status(403).json({ error: 'No identification provided.' })
+    throw new PermissionError('No identification provided.')
   }
 
   // Otherwise, validate the token:
@@ -29,10 +30,10 @@ const identifyCredentials = async (req, res, next) => {
     log('❌ Verification failed: ', pink, e.message)
 
     if (e.message === 'jwt expired') {
-      return res.status(403).json({ error: 'Token expired.' })
+      throw new PermissionError('Token expired.')
     }
     // For any other error...
-    return res.status(403).json({ error: 'Invalid credentials.' })
+    throw new PermissionError('Invalid credentials.')
   }
 
   next()
