@@ -239,7 +239,7 @@
 			"response": []
 		},
 		{
-			"name": "Create event in own calendar",
+			"name": "Shouldn't create in nonexistent calendar",
 			"event": [
 				{
 					"listen": "test",
@@ -248,8 +248,76 @@
 							"const json = pm.response.json()\r",
 							"pm.collectionVariables.set('event-etag', json.etag)\r",
 							"\r",
+							"pm.test(\"Shouldn't create with invalid calendar_id\", function () {\r",
+							"    pm.response.to.have.status(404);\r",
+							"    pm.expect(json).to.include({error: 'Calendar not found.'})\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"pm.collectionVariables.set('idem-key', pm.collectionVariables.replaceIn('{{$randomInt}}{{$randomInt}}'))\r",
+							"\r",
+							"const startTime = new Date(Date.now() - Math.random() * 1000 * 60 * 10)\r",
+							"const endTime = new Date(Date.now() + Math.random() * 1000 * 60 * 10)\r",
+							"\r",
+							"pm.collectionVariables.set('start-time', startTime.toISOString())\r",
+							"pm.collectionVariables.set('end-time', endTime.toISOString())"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"key\": \"{{idem-key}}\",\r\n    \"start_time\": \"{{start-time}}\",\r\n    \"end_time\": \"{{end-time}}\",\r\n    \"summary\": \"{{$randomCatchPhrase}}\",\r\n    \"description\": \"{{$randomLoremSentence}}\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{domain}}/calendars/:calendarId/events",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"calendars",
+						":calendarId",
+						"events"
+					],
+					"variable": [
+						{
+							"key": "calendarId",
+							"value": "zzzzzzzzz"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create event in own calendar",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"const json = pm.response.json()\r",
+							"pm.collectionVariables.set('event-etag', json.etag)\r",
+							"pm.collectionVariables.set('current-event', json.event_id)\r",
+							"\r",
 							"pm.test(\"Create event in own calendar\", function () {\r",
 							"    pm.response.to.have.status(200);\r",
+							"    pm.expect(json).to.include.keys('event_id')\r",
 							"    pm.expect(json).to.include({start_time: pm.collectionVariables.get('start-time')})\r",
 							"    pm.expect(json).to.include({end_time: pm.collectionVariables.get('end-time')})\r",
 							"    pm.expect(json).to.include({calendar_id: pm.collectionVariables.get('current-calendar')})\r",
@@ -421,13 +489,13 @@
 			"response": []
 		},
 		{
-			"name": "Get own event list",
+			"name": "Get own calendar's event list",
 			"event": [
 				{
 					"listen": "test",
 					"script": {
 						"exec": [
-							"pm.test(\"Retrieve own event list\", function () {\r",
+							"pm.test(\"Retrieve own calendar's event list\", function () {\r",
 							"    const json = pm.response.json()\r",
 							"    pm.response.to.have.status(200);\r",
 							"    pm.expect(json).to.be.an('array')\r",
@@ -472,14 +540,16 @@
 			"response": []
 		},
 		{
-			"name": "Modify event",
+			"name": "Shouldn't modify without etag",
 			"event": [
 				{
 					"listen": "test",
 					"script": {
 						"exec": [
-							"pm.test(\"Placeholder test\", function () {\r",
-							"    pm.response.to.have.status(418);\r",
+							"const json = pm.response.json()\r",
+							"pm.test(\"Must have etag.\", function () {\r",
+							"    pm.response.to.have.status(400);\r",
+							"    pm.expect(json).to.include({error: 'Missing etag.'})\r",
 							"});"
 						],
 						"type": "text/javascript"
@@ -488,7 +558,9 @@
 				{
 					"listen": "prerequest",
 					"script": {
-						"exec": [],
+						"exec": [
+							""
+						],
 						"type": "text/javascript"
 					}
 				}
@@ -497,24 +569,142 @@
 				"method": "PUT",
 				"header": [],
 				"url": {
-					"raw": "{{domain}}/calendars/:calendarId/events/:eventId",
+					"raw": "{{domain}}/calendars/events/:eventId",
 					"host": [
 						"{{domain}}"
 					],
 					"path": [
 						"calendars",
-						":calendarId",
 						"events",
 						":eventId"
 					],
 					"variable": [
 						{
-							"key": "calendarId",
-							"value": "{{current-calendar}}"
-						},
-						{
 							"key": "eventId",
 							"value": "123"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Shouldn't modify another's event",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"const json = pm.response.json()\r",
+							"pm.test(\"Shouldn't modify another's event.\", function () {\r",
+							"    pm.response.to.have.status(403);\r",
+							"    pm.expect(json).to.include({error: 'No records matched permissions.'})\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "PUT",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"etag\": \"11497984\",\r\n    \"start_time\": \"{{start-time}}\",\r\n    \"end_time\": \"{{end-time}}\",\r\n    \"summary\": \"Updated summary\",\r\n    \"description\": \"Updated description\",\r\n    \"color_id\": \"#0f0\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{domain}}/calendars/events/:eventId",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"calendars",
+						"events",
+						":eventId"
+					],
+					"variable": [
+						{
+							"key": "eventId",
+							"value": "ev1"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Modify event",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"const json = pm.response.json()\r",
+							"pm.test(\"Modify own event.\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"    pm.expect(json).to.be.an('array')\r",
+							"    pm.expect(json[0]).to.include({\r",
+							"        summary: 'Changed summary',\r",
+							"        description: 'Changed description',\r",
+							"        color_id: '#0f0',\r",
+							"        start_time: pm.collectionVariables.get('start-time'),\r",
+							"        end_time: pm.collectionVariables.get('end-time'),\r",
+							"    })\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "PUT",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"etag\": {{event-etag}},\r\n    \"start_time\": \"{{start-time}}\",\r\n    \"end_time\": \"{{end-time}}\",\r\n    \"summary\": \"Changed summary\",\r\n    \"description\": \"Changed description\",\r\n    \"color_id\": \"#0f0\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{domain}}/calendars/events/:eventId",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"calendars",
+						"events",
+						":eventId"
+					],
+					"variable": [
+						{
+							"key": "eventId",
+							"value": "{{current-event}}"
 						}
 					]
 				}
@@ -549,21 +739,16 @@
 				"method": "DELETE",
 				"header": [],
 				"url": {
-					"raw": "{{domain}}/calendars/:calendarId/events/:eventId",
+					"raw": "{{domain}}/calendars/events/:eventId",
 					"host": [
 						"{{domain}}"
 					],
 					"path": [
 						"calendars",
-						":calendarId",
 						"events",
 						":eventId"
 					],
 					"variable": [
-						{
-							"key": "calendarId",
-							"value": "{{current-calendar}}"
-						},
 						{
 							"key": "eventId",
 							"value": "123"
@@ -724,6 +909,10 @@
 		},
 		{
 			"key": "event-etag",
+			"value": ""
+		},
+		{
+			"key": "current-event",
 			"value": ""
 		}
 	]

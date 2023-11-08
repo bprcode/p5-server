@@ -7,10 +7,14 @@ const {
   updateCalendar,
   listEvents,
   addEventIdempotent,
+  updateEvent,
 } = require('../shared/database')
-const { RequestError } = require('../shared/error-types')
+const { RequestError, PermissionError } = require('../shared/error-types')
 
-const calendars = { id: { events: { id: {} } } }
+const calendars = {
+  id: { events: {} },
+  events: { id: {} },
+}
 
 const placeholder = tag => (req, res) =>
   res.status(418).send(tag + ' placeholder')
@@ -94,8 +98,8 @@ const handleCreateEvent = async (req, res) => {
     event: {
       summary: req.body.summary || 'New Event',
       description: req.body.description || '',
-      start_time: req.body.start_time || '',
-      end_time: req.body.end_time || '',
+      start_time: req.body.start_time,
+      end_time: req.body.end_time,
       color_id: req.body.color_id || '#0af',
     },
   })
@@ -117,7 +121,44 @@ const handleListEvents = async (req, res) => {
 
 calendars.id.events.get = [handleListEvents]
 
-calendars.id.events.id.put = placeholder('modify event')
-calendars.id.events.id.delete = placeholder('delete event')
+const handleUpdateEvent = async (req, res) => {
+  // Authorization:
+  // bearer uid matches primary_author_id of calendar corresponding to event
+  if (!req.body.etag) {
+    throw new RequestError('Missing etag.')
+  }
+
+  if (
+    !req.body.start_time ||
+    !req.body.end_time ||
+    !req.body.summary ||
+    !req.body.description ||
+    !req.body.color_id
+  ) {
+    throw new RequestError('Incomplete update fields.')
+  }
+
+  const result = await updateEvent({
+    eventId: req.params.id,
+    authorId: req.verified.uid,
+    etag: req.body.etag,
+    updates: {
+      summary: req.body.summary,
+      description: req.body.description,
+      start_time: req.body.start_time,
+      end_time: req.body.end_time,
+      color_id: req.body.color_id,
+    },
+  })
+
+  if(!result.length) {
+    throw new PermissionError('No records matched permissions.')
+  }
+  
+  res.json(result)
+}
+
+calendars.events.id.put = [handleUpdateEvent]
+calendars.events.id.delete = placeholder('delete event')
 
 module.exports = { calendars }

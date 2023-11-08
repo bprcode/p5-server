@@ -1,7 +1,7 @@
 const crypto = require('node:crypto')
 const { Pool } = require('pg')
 const bcrypt = require('bcrypt')
-const { PermissionError, TeapotError } = require('./error-types')
+const { PermissionError, TeapotError, RequestError, NotFoundError } = require('./error-types')
 
 const pool = new Pool()
 
@@ -292,13 +292,10 @@ async function addEventIdempotent({ key, uid, calendarId, event }) {
       [calendarId]
     )
 
-    log(
-      'comparing calendar authorship: ',
-      blue,
-      uid,
-      '/',
-      calendar.rows[0].primary_author_id
-    )
+    if(!calendar.rows.length) {
+      throw new NotFoundError('Calendar not found.')
+    }
+
     if (uid !== calendar.rows[0].primary_author_id) {
       throw new PermissionError('Permission denied for calendar.')
     }
@@ -349,6 +346,35 @@ async function addEventIdempotent({ key, uid, calendarId, event }) {
     console.timeEnd(`Add event idempotent ${logId}`)
     client.release()
   }
+}
+
+async function updateEvent({eventId, authorId, etag, updates}) {
+  const result = await pool
+  .query(
+    'UPDATE events SET summary = $1::text, ' +
+      'description = $2::text, ' +
+      'start_time = $3::timestamptz, ' +
+      'end_time = $4::timestamptz, ' +
+      'color_id = $5::text ' +
+      'FROM calendars WHERE events.calendar_id = calendars.calendar_id ' +
+      'AND primary_author_id = $6::text ' +
+      'AND events.etag = $7::text ' +
+      'AND event_id = $8::text ' +
+      'RETURNING events.summary, events.description, events.start_time, ' +
+      'events.end_time, events.color_id, events.etag',
+    [
+      updates.summary,
+      updates.description,
+      updates.start_time,
+      updates.end_time,
+      updates.color_id,
+      authorId,
+      etag,
+      eventId,
+    ]
+  )
+
+  return result.rows
 }
 
 async function addCalendar({ key, authorId, summary }) {
@@ -431,4 +457,5 @@ module.exports = {
   updateCalendar,
   listEvents,
   addEventIdempotent,
+  updateEvent,
 }

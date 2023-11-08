@@ -6,6 +6,13 @@ class SpecificError extends Error {
   }
 }
 
+class NotFoundError extends SpecificError {
+  constructor(message) {
+    super(message)
+    this.code = 404
+  }
+}
+
 class PermissionError extends SpecificError {
   constructor(message) {
     super(message)
@@ -50,6 +57,7 @@ class TeapotError extends SpecificError {
 
 module.exports = {
   SpecificError,
+  NotFoundError,
   PermissionError,
   RequestError,
   ConflictError,
