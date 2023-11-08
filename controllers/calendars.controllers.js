@@ -1,4 +1,4 @@
-const { delay } = require('../shared/shared')
+const { delay, creationMaintenance } = require('../shared/shared')
 const { identifyCredentials } = require('../shared/authorization')
 const {
   getCalendarList,
@@ -21,7 +21,9 @@ const handleListCalendars = async (req, res) => {
   res.json(result)
 }
 
-calendars.get = [delay, identifyCredentials, handleListCalendars]
+calendars.all = [delay, identifyCredentials]
+
+calendars.get = [handleListCalendars]
 
 const handleCreateCalendar = async (req, res) => {
   if (!req.body.key) {
@@ -35,7 +37,7 @@ const handleCreateCalendar = async (req, res) => {
   res.json(result)
 }
 
-calendars.post = [delay, identifyCredentials, handleCreateCalendar]
+calendars.post = [creationMaintenance, handleCreateCalendar]
 
 const handleDeleteCalendar = async (req, res) => {
   // Authorization:
@@ -53,79 +55,67 @@ const handleDeleteCalendar = async (req, res) => {
   res.json(result)
 }
 
-calendars.id.delete = [delay, identifyCredentials, handleDeleteCalendar]
+calendars.id.delete = [handleDeleteCalendar]
 
 const handleUpdateCalendar = async (req, res) => {
   // Authorization:
   // Bearer uid matches primary_author_id, etag matches current value
   // handled in query.
-  try {
-    if (!req.body.etag) {
-      throw Error('Missing etag.')
-    }
-
-    const result = await updateCalendar({
-      authorId: req.verified.uid,
-      calendarId: req.params.id,
-      etag: req.body.etag,
-      summary: req.body.summary || '',
-    })
-    res.json(result)
-  } catch (e) {
-    res.status(400).json({ error: e.message })
+  if (!req.body.etag) {
+    throw new RequestError('Missing etag.')
   }
+
+  const result = await updateCalendar({
+    authorId: req.verified.uid,
+    calendarId: req.params.id,
+    etag: req.body.etag,
+    summary: req.body.summary || '',
+  })
+  res.json(result)
 }
 
-calendars.id.put = [delay, identifyCredentials, handleUpdateCalendar]
+calendars.id.put = [handleUpdateCalendar]
 
 const handleCreateEvent = async (req, res) => {
   // Authorization:
   // Bearer uid matches primary_author_id of calendar
   // handled in transaction
-  try {
-    if (!req.body.key) {
-      throw Error('Idempotency key not specified.')
-    }
-    if (!req.body.start_time || !req.body.end_time) {
-      throw Error('Time range not specified.')
-    }
-
-    const result = await addEventIdempotent({
-      key: req.body.key,
-      uid: req.verified.uid,
-      calendarId: req.params.id,
-      event: {
-        summary: req.body.summary || 'New Event',
-        description: req.body.description || '',
-        start_time: req.body.start_time || '',
-        end_time: req.body.end_time || '',
-        color_id: req.body.color_id || '#0af',
-      },
-    })
-    res.json(result)
-  } catch (e) {
-    res.status(400).json({ error: e.message })
+  if (!req.body.key) {
+    throw new RequestError('Idempotency key not specified.')
   }
+  if (!req.body.start_time || !req.body.end_time) {
+    throw new RequestError('Time range not specified.')
+  }
+
+  const result = await addEventIdempotent({
+    key: req.body.key,
+    uid: req.verified.uid,
+    calendarId: req.params.id,
+    event: {
+      summary: req.body.summary || 'New Event',
+      description: req.body.description || '',
+      start_time: req.body.start_time || '',
+      end_time: req.body.end_time || '',
+      color_id: req.body.color_id || '#0af',
+    },
+  })
+  res.json(result)
 }
 
-calendars.id.events.post = [delay, identifyCredentials, handleCreateEvent]
+calendars.id.events.post = [creationMaintenance, handleCreateEvent]
 
 const handleListEvents = async (req, res) => {
-  try {
-    // Authorization:
-    // bearer uid matches primary_author_id of calendar
-    const result = await listEvents({
-      uid: req.verified.uid,
-      calendarId: req.params.id,
-    })
+  // Authorization:
+  // bearer uid matches primary_author_id of calendar
+  const result = await listEvents({
+    uid: req.verified.uid,
+    calendarId: req.params.id,
+  })
 
-    res.json(result)
-  } catch (e) {
-    res.status(400).json({ error: e.message })
-  }
+  res.json(result)
 }
 
-calendars.id.events.get = [delay, identifyCredentials, handleListEvents]
+calendars.id.events.get = [handleListEvents]
 
 calendars.id.events.id.put = placeholder('modify event')
 calendars.id.events.id.delete = placeholder('delete event')

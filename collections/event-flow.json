@@ -109,7 +109,7 @@
 			"response": []
 		},
 		{
-			"name": "Shouldn't create in another's calendar",
+			"name": "Shouldn't create event in another's calendar",
 			"event": [
 				{
 					"listen": "test",
@@ -117,8 +117,8 @@
 						"exec": [
 							"const json = pm.response.json()\r",
 							"\r",
-							"pm.test(\"Shouldn't create in another's calendar\", function () {\r",
-							"    pm.response.to.have.status(400);\r",
+							"pm.test(\"Shouldn't create event in another's calendar\", function () {\r",
+							"    pm.response.to.have.status(403);\r",
 							"    pm.expect(json).to.include({error: 'Permission denied for calendar.'})\r",
 							"});"
 						],
@@ -380,7 +380,7 @@
 					"script": {
 						"exec": [
 							"pm.test(\"Shouldn't get another's event list\", function () {\r",
-							"    pm.response.to.have.status(400);\r",
+							"    pm.response.to.have.status(403);\r",
 							"    pm.expect(pm.response.json()).to.include({error: \"Permission denied for event list.\"})\r",
 							"});"
 						],
@@ -587,6 +587,13 @@
 							"    pm.collectionVariables.set('calendar-etag', match.etag)\r",
 							"});"
 						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [],
 						"type": "text/javascript"
 					}
 				}

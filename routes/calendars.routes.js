@@ -3,6 +3,7 @@ const router = express.Router()
 const { calendars } = require('../controllers/calendars.controllers')
 
 router
+  .use('/', calendars.all)
   .get('/', calendars.get)
   .post('/', calendars.post)
   .put('/:id', calendars.id.put)

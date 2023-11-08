@@ -129,7 +129,7 @@
 			"response": []
 		},
 		{
-			"name": "Shouldn't access Jenny's notebook",
+			"name": "Shouldn't access Jenny's notebook Copy",
 			"event": [
 				{
 					"listen": "test",

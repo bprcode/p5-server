@@ -1,6 +1,7 @@
 const crypto = require('node:crypto')
 const { Pool } = require('pg')
 const bcrypt = require('bcrypt')
+const { PermissionError, TeapotError } = require('./error-types')
 
 const pool = new Pool()
 
@@ -176,9 +177,9 @@ async function listNotes(author) {
   return result.rows
 }
 
-async function listEvents({ uid, calendarId}) {
+async function listEvents({ uid, calendarId }) {
   const client = await pool.connect()
-  
+
   try {
     await client.query('BEGIN')
 
@@ -189,8 +190,8 @@ async function listEvents({ uid, calendarId}) {
 
     log('checking event list authorship for ', blue, calendarId)
     log('comparing ' + author.rows[0].primary_author_id + '/' + uid)
-    if(uid !== author.rows[0].primary_author_id) {
-      throw Error('Permission denied for event list.')
+    if (uid !== author.rows[0].primary_author_id) {
+      throw new PermissionError('Permission denied for event list.')
     }
 
     const events = await client.query(
@@ -199,11 +200,9 @@ async function listEvents({ uid, calendarId}) {
     )
 
     return events.rows
-
-  } catch(e) {
-    log('Error retrieving event list:', yellow, e.message)
+  } catch (e) {
+    log('Error retrieving event list: ', yellow, e.message)
     throw e
-    
   } finally {
     await client.query('COMMIT')
     client.release()
@@ -284,12 +283,6 @@ async function addEventIdempotent({ key, uid, calendarId, event }) {
   console.time(`Add event idempotent ${logId}`)
   const client = await pool.connect()
 
-  // Periodically prune old records:
-  if (Math.random() < 0.05) {
-    log('deleting old records')
-    await deleteOldIdempotencies()
-  }
-
   try {
     await client.query('BEGIN')
 
@@ -302,11 +295,12 @@ async function addEventIdempotent({ key, uid, calendarId, event }) {
     log(
       'comparing calendar authorship: ',
       blue,
-      uid,'/',
+      uid,
+      '/',
       calendar.rows[0].primary_author_id
     )
     if (uid !== calendar.rows[0].primary_author_id) {
-      throw Error('Permission denied for calendar.')
+      throw new PermissionError('Permission denied for calendar.')
     }
 
     // If a previous result exists, return it
@@ -358,12 +352,6 @@ async function addEventIdempotent({ key, uid, calendarId, event }) {
 }
 
 async function addCalendar({ key, authorId, summary }) {
-  // Periodically prune old records:
-  if (Math.random() < 0.05) {
-    log('deleting old records')
-    await deleteOldIdempotencies()
-  }
-
   const client = await pool.connect()
   try {
     await client.query('BEGIN')
@@ -435,6 +423,7 @@ module.exports = {
   matchCredentials,
   updateNote,
   deleteNote,
+  deleteOldIdempotencies,
   addNoteIdempotent,
   getCalendarList,
   addCalendar,
