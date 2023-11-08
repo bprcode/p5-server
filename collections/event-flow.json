@@ -664,6 +664,8 @@
 							"        start_time: pm.collectionVariables.get('start-time'),\r",
 							"        end_time: pm.collectionVariables.get('end-time'),\r",
 							"    })\r",
+							"    pm.expect(json[0]).to.not.include({etag: pm.collectionVariables.get('event-etag')})\r",
+							"    pm.collectionVariables.set('event-etag', json[0].etag)\r",
 							"});"
 						],
 						"type": "text/javascript"
@@ -718,8 +720,16 @@
 					"listen": "test",
 					"script": {
 						"exec": [
-							"pm.test(\"Placeholder test\", function () {\r",
-							"    pm.response.to.have.status(418);\r",
+							"const json = pm.response.json()\r",
+							"pm.test(\"Delete own event\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"    pm.expect(json).to.be.an('array').with.lengthOf(1)\r",
+							"    pm.expect(json[0]).to.include({\r",
+							"        event_id: pm.collectionVariables.get('current-event'),\r",
+							"        etag: pm.collectionVariables.get('event-etag'),\r",
+							"        start_time: pm.collectionVariables.get('start-time'),\r",
+							"        end_time: pm.collectionVariables.get('end-time'),\r",
+							"    })\r",
 							"});"
 						],
 						"type": "text/javascript"
@@ -738,6 +748,15 @@
 			"request": {
 				"method": "DELETE",
 				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"etag\": \"{{event-etag}}\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
 				"url": {
 					"raw": "{{domain}}/calendars/events/:eventId",
 					"host": [
@@ -751,7 +770,7 @@
 					"variable": [
 						{
 							"key": "eventId",
-							"value": "123"
+							"value": "{{current-event}}"
 						}
 					]
 				}

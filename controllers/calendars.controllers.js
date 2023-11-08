@@ -8,6 +8,7 @@ const {
   listEvents,
   addEventIdempotent,
   updateEvent,
+  deleteEvent,
 } = require('../shared/database')
 const { RequestError, PermissionError } = require('../shared/error-types')
 
@@ -124,6 +125,7 @@ calendars.id.events.get = [handleListEvents]
 const handleUpdateEvent = async (req, res) => {
   // Authorization:
   // bearer uid matches primary_author_id of calendar corresponding to event
+  // Handled in query.
   if (!req.body.etag) {
     throw new RequestError('Missing etag.')
   }
@@ -159,6 +161,24 @@ const handleUpdateEvent = async (req, res) => {
 }
 
 calendars.events.id.put = [handleUpdateEvent]
-calendars.events.id.delete = placeholder('delete event')
+
+const handleDeleteEvent = async (req, res) => {
+  // Authorization:
+  // bearer uid matches primary author of calendar referenced by this event
+  // Handled in query.
+  if (!req.body.etag) {
+    throw new RequestError('Etag required.')
+  }
+
+  const result = await deleteEvent({
+    verifiedUid: req.verified.uid,
+    etag: req.body.etag,
+    eventId: req.params.id,
+  })
+
+  res.json(result)
+}
+
+calendars.events.id.delete = [handleDeleteEvent]
 
 module.exports = { calendars }
