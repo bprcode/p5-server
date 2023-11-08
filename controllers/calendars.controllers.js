@@ -35,7 +35,7 @@ const handleCreateCalendar = async (req, res) => {
   }
   const result = await addCalendar({
     key: req.body.key,
-    authorId: req.verified.uid,
+    verifiedUid: req.verified.uid,
     summary: req.body.summary || 'New Calendar',
   })
   res.json(result)
@@ -93,7 +93,7 @@ const handleCreateEvent = async (req, res) => {
 
   const result = await addEventIdempotent({
     key: req.body.key,
-    uid: req.verified.uid,
+    verifiedUid: req.verified.uid,
     calendarId: req.params.id,
     event: {
       summary: req.body.summary || 'New Event',
@@ -112,7 +112,7 @@ const handleListEvents = async (req, res) => {
   // Authorization:
   // bearer uid matches primary_author_id of calendar
   const result = await listEvents({
-    uid: req.verified.uid,
+    verifiedUid: req.verified.uid,
     calendarId: req.params.id,
   })
 
@@ -140,7 +140,7 @@ const handleUpdateEvent = async (req, res) => {
 
   const result = await updateEvent({
     eventId: req.params.id,
-    authorId: req.verified.uid,
+    verifiedUid: req.verified.uid,
     etag: req.body.etag,
     updates: {
       summary: req.body.summary,
@@ -154,7 +154,7 @@ const handleUpdateEvent = async (req, res) => {
   if(!result.length) {
     throw new PermissionError('No records matched permissions.')
   }
-  
+
   res.json(result)
 }
 

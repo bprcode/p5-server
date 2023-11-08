@@ -1,7 +1,7 @@
 const crypto = require('node:crypto')
 const { Pool } = require('pg')
 const bcrypt = require('bcrypt')
-const { PermissionError, TeapotError, RequestError, NotFoundError } = require('./error-types')
+const { PermissionError, NotFoundError } = require('./error-types')
 
 const pool = new Pool()
 
@@ -123,10 +123,10 @@ async function getUserByEmail(email) {
   return result.rows[0]
 }
 
-async function getCalendarList(authorId) {
+async function getCalendarList(verifiedUid) {
   const result = await pool.query(
     'SELECT * FROM calendars WHERE primary_author_id = $1::text',
-    [authorId]
+    [verifiedUid]
   )
   return result.rows
 }
@@ -177,7 +177,7 @@ async function listNotes(author) {
   return result.rows
 }
 
-async function listEvents({ uid, calendarId }) {
+async function listEvents({ verifiedUid, calendarId }) {
   const client = await pool.connect()
 
   try {
@@ -189,8 +189,8 @@ async function listEvents({ uid, calendarId }) {
     )
 
     log('checking event list authorship for ', blue, calendarId)
-    log('comparing ' + author.rows[0].primary_author_id + '/' + uid)
-    if (uid !== author.rows[0].primary_author_id) {
+    log('comparing ' + author.rows[0].primary_author_id + '/' + verifiedUid)
+    if (verifiedUid !== author.rows[0].primary_author_id) {
       throw new PermissionError('Permission denied for event list.')
     }
 
@@ -217,12 +217,12 @@ async function deleteOldIdempotencies() {
   log('♻️ Removed ', recycled.rows.length, ' old records.')
 }
 
-function checkIdempotency({ key, uid, client }) {
+function checkIdempotency({ key, verifiedUid, client }) {
   return client
     .query(
       'SELECT * FROM idempotency WHERE ' +
         'idem_key = $1::text AND uid = $2::text',
-      [key, uid]
+      [key, verifiedUid]
     )
     .then(result => result.rows[0])
 }
@@ -242,7 +242,7 @@ async function addNoteIdempotent(key, uid, note) {
     await client.query('BEGIN')
 
     // If a previous result exists, return it
-    const previous = await checkIdempotency({ key, uid, client })
+    const previous = await checkIdempotency({ key, verifiedUid: uid, client })
 
     if (previous) {
       log('already had note: ', key, uid)
@@ -278,7 +278,7 @@ async function addNoteIdempotent(key, uid, note) {
   }
 }
 
-async function addEventIdempotent({ key, uid, calendarId, event }) {
+async function addEventIdempotent({ key, verifiedUid, calendarId, event }) {
   const logId = Math.random()
   console.time(`Add event idempotent ${logId}`)
   const client = await pool.connect()
@@ -292,19 +292,19 @@ async function addEventIdempotent({ key, uid, calendarId, event }) {
       [calendarId]
     )
 
-    if(!calendar.rows.length) {
+    if (!calendar.rows.length) {
       throw new NotFoundError('Calendar not found.')
     }
 
-    if (uid !== calendar.rows[0].primary_author_id) {
+    if (verifiedUid !== calendar.rows[0].primary_author_id) {
       throw new PermissionError('Permission denied for calendar.')
     }
 
     // If a previous result exists, return it
-    const previous = await checkIdempotency({ key, uid, client })
+    const previous = await checkIdempotency({ key, verifiedUid, client })
 
     if (previous) {
-      log('already had event: ', key, uid)
+      log('already had event: ', key, verifiedUid)
       return previous.outcome
     }
 
@@ -333,7 +333,7 @@ async function addEventIdempotent({ key, uid, calendarId, event }) {
     await client.query(
       'INSERT INTO idempotency (idem_key, uid, outcome) ' +
         'VALUES ($1::text, $2::text, $3::jsonb) RETURNING outcome',
-      [key, uid, created]
+      [key, verifiedUid, created]
     )
 
     return created
@@ -348,9 +348,8 @@ async function addEventIdempotent({ key, uid, calendarId, event }) {
   }
 }
 
-async function updateEvent({eventId, authorId, etag, updates}) {
-  const result = await pool
-  .query(
+async function updateEvent({ eventId, verifiedUid, etag, updates }) {
+  const result = await pool.query(
     'UPDATE events SET summary = $1::text, ' +
       'description = $2::text, ' +
       'start_time = $3::timestamptz, ' +
@@ -368,7 +367,7 @@ async function updateEvent({eventId, authorId, etag, updates}) {
       updates.start_time,
       updates.end_time,
       updates.color_id,
-      authorId,
+      verifiedUid,
       etag,
       eventId,
     ]
@@ -377,16 +376,16 @@ async function updateEvent({eventId, authorId, etag, updates}) {
   return result.rows
 }
 
-async function addCalendar({ key, authorId, summary }) {
+async function addCalendar({ key, verifiedUid, summary }) {
   const client = await pool.connect()
   try {
     await client.query('BEGIN')
 
     // If a previous result exists, return it
-    const previous = await checkIdempotency({ key, uid: authorId, client })
+    const previous = await checkIdempotency({ key, verifiedUid, client })
 
     if (previous) {
-      log('already had entry: ', key, authorId)
+      log('already had entry: ', key, verifiedUid)
       return previous.outcome
     }
 
@@ -399,7 +398,7 @@ async function addCalendar({ key, authorId, summary }) {
       .query(
         'INSERT INTO calendars (calendar_id, summary, primary_author_id) ' +
           'VALUES ($1::text, $2::text, $3::text) RETURNING *',
-        [calendarId, summary, authorId]
+        [calendarId, summary, verifiedUid]
       )
       .then(result => result.rows[0])
 
@@ -407,7 +406,7 @@ async function addCalendar({ key, authorId, summary }) {
     await client.query(
       'INSERT INTO idempotency (idem_key, uid, outcome) ' +
         'VALUES ($1::text, $2::text, $3::jsonb) RETURNING outcome',
-      [key, authorId, created]
+      [key, verifiedUid, created]
     )
 
     return created
