@@ -26,6 +26,7 @@ if (process.env.NODE_ENV === 'development') {
             ok()
           }, delay)
         } else {
+          console.timeEnd(`(${waitId}) Delayed`)
           log('🪩 Simulating disconnect')
         }
       })

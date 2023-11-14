@@ -18,6 +18,20 @@ app
   .use(express.text())
   .use(cookieParser())
 
+  // For development server only:
+  .use((req, res, next) => {
+    if (process.env.NODE_ENV === 'development') {
+      res.set({
+        'access-control-allow-origin': process.env.ACAO,
+        'access-control-allow-credentials': 'true',
+        'access-control-allow-headers': 'content-type',
+        'access-control-allow-methods': 'POST, GET, OPTIONS, DELETE',
+      })
+    }
+
+    next()
+  })
+
   // PUBLIC ROUTES ____________________________________________________________
 
   .get('/hi', (req, res) => {
@@ -34,6 +48,8 @@ app
     )
     next()
   })
+
+  .use('/timeout', (req, res) => {})
 
   .use(
     express.static(
@@ -58,8 +74,8 @@ app
 
   .use((err, req, res, next) => {
     if (err instanceof SpecificError) {
-      log('Handling SpecificError descendant: ',blue, err.name)
-      return res.status(err.code).json({ error: err.message})
+      log('Handling SpecificError descendant: ', blue, err.name)
+      return res.status(err.code).json({ error: err.message })
     }
 
     log('Unrecognized error encountered: ', pink, err.message)
