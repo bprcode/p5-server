@@ -1,4 +1,4 @@
-const { delay, creationMaintenance } = require('../shared/shared')
+const { creationMaintenance } = require('../shared/shared')
 const { identifyCredentials } = require('../shared/authorization')
 const {
   getCalendarList,
@@ -26,7 +26,7 @@ const handleListCalendars = async (req, res) => {
   res.json(result)
 }
 
-calendars.all = [delay, identifyCredentials]
+calendars.all = [identifyCredentials]
 
 calendars.get = [handleListCalendars]
 

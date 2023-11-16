@@ -1,4 +1,3 @@
-const { delay } = require('../shared/shared')
 const {
   identifyCredentials,
   requestToken,
@@ -17,7 +16,6 @@ const register = {}
 
 // Let the client know the state of its cookie:
 me.get = [
-  delay,
   (req, res, next) => {
     if (!req.cookies.token) {
       log('User had no cookie; must login to proceed.')
@@ -34,7 +32,6 @@ me.get = [
 
 // Retrieve an identity token
 login.post = [
-  delay,
   async (req, res) => {
     const { email, password } = req.body
     log(new Date().toLocaleTimeString(), ' Received login post request', pink)
@@ -56,7 +53,6 @@ login.post = [
 
 // Expire an identity token
 login.delete = [
-  delay,
   (req, res) => {
     log('🧼 sending login-delete', pink)
     return res
@@ -72,7 +68,6 @@ login.delete = [
 
 // Delete a user registration
 register.delete = [
-  delay,
   identifyCredentials,
   (req, res) => {
     // Authorization: <bearer> exists
@@ -88,7 +83,6 @@ register.delete = [
 
 // Create a new user
 register.post = [
-  delay,
   async (req, res) => {
     const { email, password } = req.body
     log('Attempting to create or use login: ', pink, email)

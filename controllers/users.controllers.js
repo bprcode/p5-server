@@ -1,4 +1,3 @@
-const { delay } = require('../shared/shared')
 const { identifyCredentials } = require('../shared/authorization')
 const {
   listNotes,
@@ -18,7 +17,7 @@ const handleNotebookGet = (req, res) => {
     .catch(error => res.status(500).json({ error: error.message }))
 }
 
-notebook.get = [delay, identifyCredentials, handleNotebookGet]
+notebook.get = [identifyCredentials, handleNotebookGet]
 
 const handleNotebookPost = (req, res) => {
   // Authorization: path-id = <bearer>,
@@ -39,6 +38,6 @@ const handleNotebookPost = (req, res) => {
     })
 }
 
-notebook.post = [delay, identifyCredentials, handleNotebookPost]
+notebook.post = [identifyCredentials, handleNotebookPost]
 
 module.exports = { notebook }

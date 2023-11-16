@@ -1,4 +1,3 @@
-const { delay } = require('../shared/shared')
 const { identifyCredentials } = require('../shared/authorization')
 const { updateNote, getNote, deleteNote } = require('../shared/database')
 
@@ -11,7 +10,7 @@ const handleGet = (req, res) => {
     .catch(error => res.status(403).json({ error: error.message }))
 }
 
-notes.get = [delay, identifyCredentials, handleGet]
+notes.get = [identifyCredentials, handleGet]
 
 const handlePut = (req, res) => {
   // Authorization: author = <bearer>, handled in query
@@ -27,7 +26,7 @@ const handlePut = (req, res) => {
     })
 }
 
-notes.put = [delay, identifyCredentials, handlePut]
+notes.put = [identifyCredentials, handlePut]
 
 const handleDelete = (req, res) => {
   // Authorization: author = <bearer>, handled in query
@@ -39,6 +38,6 @@ const handleDelete = (req, res) => {
     .finally(() => res.status(200).json({ notice: 'Request received.' }))
 }
 
-notes.delete = [delay, identifyCredentials, handleDelete]
+notes.delete = [identifyCredentials, handleDelete]
 
 module.exports = { notes }

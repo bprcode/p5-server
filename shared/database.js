@@ -1,7 +1,7 @@
 const crypto = require('node:crypto')
 const { Pool } = require('pg')
 const bcrypt = require('bcrypt')
-const { PermissionError, NotFoundError } = require('./error-types')
+const { PermissionError, NotFoundError, RequestError } = require('./error-types')
 
 const pool = new Pool()
 

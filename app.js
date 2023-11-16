@@ -11,6 +11,7 @@ const usersRoutes = require('./routes/users.routes')
 const notesRoutes = require('./routes/notes.routes')
 const calendarsRoutes = require('./routes/calendars.routes')
 const { SpecificError } = require('./shared/error-types')
+const { delay} = require('./shared/shared')
 
 app
   .disable('x-powered-by')
@@ -18,8 +19,8 @@ app
   .use(express.text())
   .use(cookieParser())
 
-  // For development server only:
-  .use((req, res, next) => {
+  .use([delay, (req, res, next) => {
+    // For development server only:
     if (process.env.NODE_ENV === 'development') {
       res.set({
         'access-control-allow-origin': process.env.ACAO,
@@ -27,10 +28,15 @@ app
         'access-control-allow-headers': 'content-type',
         'access-control-allow-methods': 'POST, GET, OPTIONS, DELETE',
       })
+
+      if (req.method === 'OPTIONS') {
+        log('Serving options request...', blue)
+        return res.send()
+      }
     }
 
     next()
-  })
+  }])
 
   // PUBLIC ROUTES ____________________________________________________________
 
@@ -74,7 +80,7 @@ app
 
   .use((err, req, res, next) => {
     if (err instanceof SpecificError) {
-      log('Handling SpecificError descendant: ', blue, err.name)
+      log('Handling specific error: ', err.name, blue, ' - ' + err.message)
       return res.status(err.code).json({ error: err.message })
     }
 
