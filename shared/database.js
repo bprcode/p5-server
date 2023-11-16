@@ -1,7 +1,11 @@
 const crypto = require('node:crypto')
 const { Pool } = require('pg')
 const bcrypt = require('bcrypt')
-const { PermissionError, NotFoundError, RequestError } = require('./error-types')
+const {
+  PermissionError,
+  NotFoundError,
+  RequestError,
+} = require('./error-types')
 
 const pool = new Pool()
 
@@ -125,7 +129,8 @@ async function getUserByEmail(email) {
 
 async function getCalendarList(verifiedUid) {
   const result = await pool.query(
-    'SELECT * FROM calendars WHERE primary_author_id = $1::text',
+    'SELECT * FROM calendars WHERE primary_author_id = $1::text' +
+      ' ORDER BY updated DESC',
     [verifiedUid]
   )
   return result.rows
@@ -350,13 +355,13 @@ async function addEventIdempotent({ key, verifiedUid, calendarId, event }) {
 
 async function deleteEvent({ eventId, verifiedUid, etag }) {
   const result = await pool.query(
-    'DELETE FROM events USING calendars WHERE '+
-    'events.calendar_id = calendars.calendar_id and '+
-    'primary_author_id = $1::text and '+
-    'event_id = $2::text and '+
-    'events.etag = $3::text '+
-    'RETURNING events.event_id, events.etag, events.summary, '+
-    'events.description, events.start_time, events.end_time, events.color_id',
+    'DELETE FROM events USING calendars WHERE ' +
+      'events.calendar_id = calendars.calendar_id and ' +
+      'primary_author_id = $1::text and ' +
+      'event_id = $2::text and ' +
+      'events.etag = $3::text ' +
+      'RETURNING events.event_id, events.etag, events.summary, ' +
+      'events.description, events.start_time, events.end_time, events.color_id',
     [verifiedUid, eventId, etag]
   )
   return result.rows
