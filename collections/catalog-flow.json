@@ -449,6 +449,63 @@
 			"response": []
 		},
 		{
+			"name": "Shouldn't update with wrong etag",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"const json = pm.response.json()\r",
+							"pm.test(\"Shouldn't update with wrong etag\", function () {\r",
+							"    pm.response.to.have.status(409);\r",
+							"    pm.expect(json).to.include({error: 'etag mismatch.'})\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "PUT",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"etag\": \"incorrect\",\r\n    \"summary\": \"Updated summary\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{domain}}/calendars/:id",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"calendars",
+						":id"
+					],
+					"variable": [
+						{
+							"key": "id",
+							"value": "{{created-calendar}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
 			"name": "Modify calendar",
 			"event": [
 				{
@@ -515,8 +572,8 @@
 						"exec": [
 							"const json = pm.response.json()\r",
 							"pm.test(\"Shouldn't modify private calendar\", function () {\r",
-							"    pm.response.to.have.status(200);\r",
-							"    pm.expect(json).to.be.an('array').with.lengthOf(0)\r",
+							"    pm.response.to.have.status(403);\r",
+							"    pm.expect(json).to.include({error: 'Permission denied.'})\r",
 							"});"
 						],
 						"type": "text/javascript"

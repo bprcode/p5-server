@@ -53,7 +53,7 @@ const handleDeleteCalendar = async (req, res) => {
   }
 
   const result = await deleteCalendar({
-    authorId: req.verified.uid,
+    verifiedUid: req.verified.uid,
     calendarId: req.params.id,
     etag: req.body.etag,
   })
@@ -71,7 +71,7 @@ const handleUpdateCalendar = async (req, res) => {
   }
 
   const result = await updateCalendar({
-    authorId: req.verified.uid,
+    verifiedUid: req.verified.uid,
     calendarId: req.params.id,
     etag: req.body.etag,
     summary: req.body.summary || '',

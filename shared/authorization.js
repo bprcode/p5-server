@@ -3,7 +3,7 @@ const jwt = require('jsonwebtoken')
 const { matchCredentials } = require('./database')
 const { PermissionError } = require('./error-types')
 
-const cookieSeconds = 60 * 2
+const cookieSeconds = 60 * 10
 
 /**
  * Extract and verify the request's bearer token.

@@ -26,7 +26,7 @@ app
         'access-control-allow-origin': process.env.ACAO,
         'access-control-allow-credentials': 'true',
         'access-control-allow-headers': 'content-type',
-        'access-control-allow-methods': 'POST, GET, OPTIONS, DELETE',
+        'access-control-allow-methods': 'POST, PUT, GET, OPTIONS, DELETE',
       })
 
       if (req.method === 'OPTIONS') {

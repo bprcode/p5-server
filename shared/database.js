@@ -5,6 +5,7 @@ const {
   PermissionError,
   NotFoundError,
   RequestError,
+  ConflictError,
 } = require('./error-types')
 
 const pool = new Pool()
@@ -438,25 +439,58 @@ async function addCalendar({ key, verifiedUid, summary }) {
   }
 }
 
-async function deleteCalendar({ calendarId, authorId, etag }) {
+async function deleteCalendar({ calendarId, verifiedUid, etag }) {
   const result = await pool.query(
     'DELETE FROM calendars WHERE ' +
       'calendar_id = $1::text AND ' +
       'primary_author_id = $2::text AND etag = $3::text ' +
       'RETURNING *',
-    [calendarId, authorId, etag]
+    [calendarId, verifiedUid, etag]
   )
   return result.rows
 }
 
-async function updateCalendar({ calendarId, authorId, etag, summary }) {
-  const result = await pool.query(
-    'UPDATE calendars SET summary = $4::text WHERE ' +
-      'calendar_id = $1::text AND primary_author_id = $2::text AND ' +
-      'etag = $3::text RETURNING *',
-    [calendarId, authorId, etag, summary]
-  )
-  return result.rows
+async function updateCalendar({
+  calendarId,
+  verifiedUid,
+  etag,
+  summary,
+}) {
+  const client = await pool.connect()
+  try {
+    await client.query('BEGIN')
+
+    const result = await client.query(
+      'UPDATE calendars SET summary = $4::text WHERE ' +
+        'calendar_id = $1::text AND primary_author_id = $2::text AND ' +
+        'etag = $3::text RETURNING *',
+      [calendarId, verifiedUid, etag, summary]
+    )
+
+    if (result.rows.length) {
+      return result.rows
+    }
+
+    // If nothing updated, determine why:
+    const match = await client.query(
+      'SELECT true FROM calendars WHERE calendar_id = $1::text AND ' +
+        'primary_author_id = $2::text',
+      [calendarId, verifiedUid]
+    )
+
+    // author/calendar matched; must have been the etag:
+    if (match.rows.length) {
+      throw new ConflictError('etag mismatch.')
+    }
+
+    throw new PermissionError('Permission denied.')
+  } catch (e) {
+    await client.query('ROLLBACK')
+    throw e
+  } finally {
+    await client.query('COMMIT')
+    client.release()
+  }
 }
 
 module.exports = {
