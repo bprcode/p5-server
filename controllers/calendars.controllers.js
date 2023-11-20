@@ -76,6 +76,7 @@ const handleUpdateCalendar = async (req, res) => {
     etag: req.body.etag,
     summary: req.body.summary || '',
   })
+
   res.json(result)
 }
 
@@ -153,7 +154,7 @@ const handleUpdateEvent = async (req, res) => {
     },
   })
 
-  if(!result.length) {
+  if (!result.length) {
     throw new PermissionError('No records matched permissions.')
   }
 

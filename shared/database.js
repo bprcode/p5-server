@@ -10,6 +10,25 @@ const {
 
 const pool = new Pool()
 
+// Invoke an async callback within a transaction context
+async function transact(callback) {
+  const client = await pool.connect()
+  try {
+    await client.query('BEGIN')
+    log('transaction begun', green)
+
+    return await callback(client)
+  } catch (e) {
+    await client.query('ROLLBACK')
+    log('transaction rollback', yellow)
+    throw e
+  } finally {
+    await client.query('COMMIT')
+    client.release()
+    log('transaction released', blue)
+  }
+}
+
 // If given valid credentials, return matching user record, null otherwise.
 async function matchCredentials(email, password) {
   const timerId = (Math.random() * 1000).toFixed()
@@ -39,12 +58,8 @@ async function deleteRegistration(uid) {
   return result.rows[0]
 }
 
-async function transactRegistration(candidate) {
-  const client = await pool.connect()
-
-  try {
-    await client.query('BEGIN')
-    log('>> BEGIN', green)
+function transactRegistration(candidate) {
+  return transact(async client => {
     const previous = await client.query(
       'SELECT email FROM logins WHERE email ilike $1::text',
       [candidate.email]
@@ -52,7 +67,7 @@ async function transactRegistration(candidate) {
 
     if (previous.rows.length > 0) {
       log(candidate.email, pink, ' already taken')
-      throw Error('email already in use.')
+      throw new ConflictError('email already in use.')
     }
 
     // If the email is not in use, create a login:
@@ -70,14 +85,7 @@ async function transactRegistration(candidate) {
     )
 
     return outcome.rows[0]
-  } catch (e) {
-    log(e.message)
-    await client.query('ROLLBACK')
-    log('<< ROLLBACK', pink)
-  } finally {
-    await client.query('COMMIT')
-    client.release()
-  }
+  })
 }
 
 function base62NoO(bigNumber) {
@@ -183,12 +191,8 @@ async function listNotes(author) {
   return result.rows
 }
 
-async function listEvents({ verifiedUid, calendarId }) {
-  const client = await pool.connect()
-
-  try {
-    await client.query('BEGIN')
-
+function listEvents({ verifiedUid, calendarId }) {
+  return transact(async client => {
     const author = await client.query(
       'SELECT primary_author_id FROM calendars WHERE calendar_id = $1::text;',
       [calendarId]
@@ -206,13 +210,7 @@ async function listEvents({ verifiedUid, calendarId }) {
     )
 
     return events.rows
-  } catch (e) {
-    log('Error retrieving event list: ', yellow, e.message)
-    throw e
-  } finally {
-    await client.query('COMMIT')
-    client.release()
-  }
+  })
 }
 
 async function deleteOldIdempotencies() {
@@ -284,14 +282,11 @@ async function addNoteIdempotent(key, uid, note) {
   }
 }
 
-async function addEventIdempotent({ key, verifiedUid, calendarId, event }) {
+function addEventIdempotent({ key, verifiedUid, calendarId, event }) {
   const logId = Math.random()
   console.time(`Add event idempotent ${logId}`)
-  const client = await pool.connect()
 
-  try {
-    await client.query('BEGIN')
-
+  return transact(async client => {
     // Check that the bearer has permission to add to this calendar:
     const calendar = await client.query(
       'SELECT primary_author_id FROM calendars WHERE calendar_id = $1::text',
@@ -343,15 +338,9 @@ async function addEventIdempotent({ key, verifiedUid, calendarId, event }) {
     )
 
     return created
-  } catch (e) {
-    await client.query('ROLLBACK')
-    log('<< rolling back...', yellow)
-    throw e
-  } finally {
-    await client.query('COMMIT')
+  }).finally(() => {
     console.timeEnd(`Add event idempotent ${logId}`)
-    client.release()
-  }
+  })
 }
 
 async function deleteEvent({ eventId, verifiedUid, etag }) {
@@ -396,11 +385,8 @@ async function updateEvent({ eventId, verifiedUid, etag, updates }) {
   return result.rows
 }
 
-async function addCalendar({ key, verifiedUid, summary }) {
-  const client = await pool.connect()
-  try {
-    await client.query('BEGIN')
-
+function addCalendar({ key, verifiedUid, summary }) {
+  return transact(async client => {
     // If a previous result exists, return it
     const previous = await checkIdempotency({ key, verifiedUid, client })
 
@@ -430,13 +416,7 @@ async function addCalendar({ key, verifiedUid, summary }) {
     )
 
     return created
-  } catch (e) {
-    await client.query('ROLLBACK')
-    throw e
-  } finally {
-    await client.query('COMMIT')
-    client.release()
-  }
+  })
 }
 
 async function deleteCalendar({ calendarId, verifiedUid, etag }) {
@@ -450,16 +430,8 @@ async function deleteCalendar({ calendarId, verifiedUid, etag }) {
   return result.rows
 }
 
-async function updateCalendar({
-  calendarId,
-  verifiedUid,
-  etag,
-  summary,
-}) {
-  const client = await pool.connect()
-  try {
-    await client.query('BEGIN')
-
+function updateCalendar({ calendarId, verifiedUid, etag, summary }) {
+  return transact(async client => {
     const result = await client.query(
       'UPDATE calendars SET summary = $4::text WHERE ' +
         'calendar_id = $1::text AND primary_author_id = $2::text AND ' +
@@ -484,13 +456,7 @@ async function updateCalendar({
     }
 
     throw new PermissionError('Permission denied.')
-  } catch (e) {
-    await client.query('ROLLBACK')
-    throw e
-  } finally {
-    await client.query('COMMIT')
-    client.release()
-  }
+  })
 }
 
 module.exports = {
