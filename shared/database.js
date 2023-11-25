@@ -445,7 +445,8 @@ function deleteCalendar({ calendarId, verifiedUid, etag }) {
       throw new ConflictError('etag mismatch.')
     }
 
-    throw new PermissionError('Permission denied.')
+    // Calendar does not exist, or author does not match:
+    throw new NotFoundError('Resource not found.')
   })
 }
 
@@ -474,7 +475,8 @@ function updateCalendar({ calendarId, verifiedUid, etag, summary }) {
       throw new ConflictError('etag mismatch.')
     }
 
-    throw new PermissionError('Permission denied.')
+    // Calendar does not exist, or author does not match:
+    throw new NotFoundError('Resource not found.')
   })
 }
 
