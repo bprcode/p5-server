@@ -419,15 +419,34 @@ function addCalendar({ key, verifiedUid, summary }) {
   })
 }
 
-async function deleteCalendar({ calendarId, verifiedUid, etag }) {
-  const result = await pool.query(
-    'DELETE FROM calendars WHERE ' +
-      'calendar_id = $1::text AND ' +
-      'primary_author_id = $2::text AND etag = $3::text ' +
-      'RETURNING *',
-    [calendarId, verifiedUid, etag]
-  )
-  return result.rows
+function deleteCalendar({ calendarId, verifiedUid, etag }) {
+  return transact(async client => {
+    const result = await client.query(
+      'DELETE FROM calendars WHERE ' +
+        'calendar_id = $1::text AND ' +
+        'primary_author_id = $2::text AND etag = $3::text ' +
+        'RETURNING *',
+      [calendarId, verifiedUid, etag]
+    )
+
+    if (result.rows.length) {
+      return result.rows
+    }
+
+    // If nothing deleted, determine why:
+    const match = await client.query(
+      'SELECT true FROM calendars WHERE calendar_id = $1::text AND ' +
+        'primary_author_id = $2::text',
+      [calendarId, verifiedUid]
+    )
+
+    // author/calendar matched; must have been the etag:
+    if (match.rows.length) {
+      throw new ConflictError('etag mismatch.')
+    }
+
+    throw new PermissionError('Permission denied.')
+  })
 }
 
 function updateCalendar({ calendarId, verifiedUid, etag, summary }) {

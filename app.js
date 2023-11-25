@@ -56,6 +56,9 @@ app
   })
 
   .use('/timeout', (req, res) => {})
+  .use('/coinflip', (req, res) => {
+    if(Math.random() > 0.5) res.send('heads')
+  })
 
   .use(
     express.static(

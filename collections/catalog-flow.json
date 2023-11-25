@@ -402,9 +402,9 @@
 					"script": {
 						"exec": [
 							"pm.test(\"Shouldn't delete another user's calendar\", function () {\r",
-							"    pm.response.to.have.status(200);\r",
-							"    pm.expect(pm.response.json()).to.be.an('array').with.lengthOf(0)\r",
-							"});"
+							"    pm.response.to.have.status(403)\r",
+							"    pm.expect(pm.response.json()).to.include({error: 'Permission denied.'})\r",
+							"})"
 						],
 						"type": "text/javascript"
 					}
@@ -412,7 +412,9 @@
 				{
 					"listen": "prerequest",
 					"script": {
-						"exec": [],
+						"exec": [
+							""
+						],
 						"type": "text/javascript"
 					}
 				}
@@ -628,8 +630,8 @@
 					"script": {
 						"exec": [
 							"pm.test(\"Outdated etag cannot be used to delete\", function () {\r",
-							"    pm.response.to.have.status(200);\r",
-							"    pm.expect(pm.response.json()).to.be.an('array').with.lengthOf(0)\r",
+							"    pm.response.to.have.status(409);\r",
+							"    pm.expect(pm.response.json()).to.include({error: 'etag mismatch.'})\r",
 							"});"
 						],
 						"type": "text/javascript"
@@ -638,7 +640,9 @@
 				{
 					"listen": "prerequest",
 					"script": {
-						"exec": [],
+						"exec": [
+							""
+						],
 						"type": "text/javascript"
 					}
 				}
