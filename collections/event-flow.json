@@ -942,46 +942,6 @@
 			"response": []
 		},
 		{
-			"name": "Get updated calendar etag",
-			"event": [
-				{
-					"listen": "test",
-					"script": {
-						"exec": [
-							"pm.test(\"Get latest calendar etag\", function () {\r",
-							"    pm.response.to.have.status(200);\r",
-							"    const json = pm.response.json()\r",
-							"    const match = json.find(r => r.calendar_id === pm.collectionVariables.get('current-calendar'))\r",
-							"    pm.collectionVariables.set('calendar-etag', match.etag)\r",
-							"});"
-						],
-						"type": "text/javascript"
-					}
-				},
-				{
-					"listen": "prerequest",
-					"script": {
-						"exec": [],
-						"type": "text/javascript"
-					}
-				}
-			],
-			"request": {
-				"method": "GET",
-				"header": [],
-				"url": {
-					"raw": "{{domain}}/calendars",
-					"host": [
-						"{{domain}}"
-					],
-					"path": [
-						"calendars"
-					]
-				}
-			},
-			"response": []
-		},
-		{
 			"name": "Create leap day event",
 			"event": [
 				{
@@ -1342,7 +1302,7 @@
 			"response": []
 		},
 		{
-			"name": "Get range event list",
+			"name": "Should have created five events",
 			"event": [
 				{
 					"listen": "test",
@@ -1374,7 +1334,7 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "{{domain}}/calendars/:calendarId/events?from=2024-02-29 00:00:00.000Z&to=2024-02-29 00:00:00.000Z",
+					"raw": "{{domain}}/calendars/:calendarId/events?from=2024-02-28 00:00:00.000Z&to=2024-03-02 00:00:00.000Z",
 					"host": [
 						"{{domain}}"
 					],
@@ -1386,11 +1346,11 @@
 					"query": [
 						{
 							"key": "from",
-							"value": "2024-02-29 00:00:00.000Z"
+							"value": "2024-02-28 00:00:00.000Z"
 						},
 						{
 							"key": "to",
-							"value": "2024-02-29 00:00:00.000Z"
+							"value": "2024-03-02 00:00:00.000Z"
 						}
 					],
 					"variable": [
@@ -1398,6 +1358,228 @@
 							"key": "calendarId",
 							"value": "{{current-calendar}}"
 						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Can filter half the events",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Filter ranged event list\", function () {\r",
+							"    const json = pm.response.json()\r",
+							"    pm.response.to.have.status(200);\r",
+							"    pm.expect(json).to.be.an('array')\r",
+							"    pm.expect(json).to.have.lengthOf(3)\r",
+							"    const etagMatch = json.find(e => e.etag === pm.collectionVariables.get('event-etag'))\r",
+							"    pm.expect(etagMatch).to.not.be.ok\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{domain}}/calendars/:calendarId/events?from=2024-02-28 00:00:00.000Z&to=2024-02-29 12:00:00.000Z",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"calendars",
+						":calendarId",
+						"events"
+					],
+					"query": [
+						{
+							"key": "from",
+							"value": "2024-02-28 00:00:00.000Z"
+						},
+						{
+							"key": "to",
+							"value": "2024-02-29 12:00:00.000Z"
+						}
+					],
+					"variable": [
+						{
+							"key": "calendarId",
+							"value": "{{current-calendar}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Before midnight doesn't count",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Before midnight doesn't count\", function () {\r",
+							"    const json = pm.response.json()\r",
+							"    pm.response.to.have.status(200);\r",
+							"    pm.expect(json).to.be.an('array')\r",
+							"    pm.expect(json).to.have.lengthOf(0)\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{domain}}/calendars/:calendarId/events?from=2024-02-27 23:59:00.000Z&to=2024-02-28 00:00:00.000Z",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"calendars",
+						":calendarId",
+						"events"
+					],
+					"query": [
+						{
+							"key": "from",
+							"value": "2024-02-27 23:59:00.000Z"
+						},
+						{
+							"key": "to",
+							"value": "2024-02-28 00:00:00.000Z"
+						}
+					],
+					"variable": [
+						{
+							"key": "calendarId",
+							"value": "{{current-calendar}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "After midnight does count",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"After midnight does count\", function () {\r",
+							"    const json = pm.response.json()\r",
+							"    pm.response.to.have.status(200);\r",
+							"    pm.expect(json).to.be.an('array')\r",
+							"    pm.expect(json).to.have.lengthOf(1)\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{domain}}/calendars/:calendarId/events?from=2024-02-28 00:00:00.000Z&to=2024-02-28 00:00:01.000Z",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"calendars",
+						":calendarId",
+						"events"
+					],
+					"query": [
+						{
+							"key": "from",
+							"value": "2024-02-28 00:00:00.000Z"
+						},
+						{
+							"key": "to",
+							"value": "2024-02-28 00:00:01.000Z"
+						}
+					],
+					"variable": [
+						{
+							"key": "calendarId",
+							"value": "{{current-calendar}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get updated calendar etag",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Get latest calendar etag\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"    const json = pm.response.json()\r",
+							"    const match = json.find(r => r.calendar_id === pm.collectionVariables.get('current-calendar'))\r",
+							"    pm.collectionVariables.set('calendar-etag', match.etag)\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{domain}}/calendars",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"calendars"
 					]
 				}
 			},

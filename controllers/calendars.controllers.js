@@ -111,6 +111,7 @@ const handleCreateEvent = async (req, res) => {
 calendars.id.events.post = [creationMaintenance, handleCreateEvent]
 
 const handleListEvents = async (req, res) => {
+  log('from=',yellow, req.query.from, ' to=', yellow, req.query.to)
   // Authorization:
   // bearer uid matches primary_author_id of calendar
   const result = await listEvents({
