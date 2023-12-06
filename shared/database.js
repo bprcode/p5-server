@@ -191,7 +191,7 @@ async function listNotes(author) {
   return result.rows
 }
 
-function listEvents({ verifiedUid, calendarId }) {
+function listEvents({ verifiedUid, calendarId, from, to }) {
   return transact(async client => {
     const author = await client.query(
       'SELECT primary_author_id FROM calendars WHERE calendar_id = $1::text;',
@@ -201,7 +201,7 @@ function listEvents({ verifiedUid, calendarId }) {
     log('checking event list authorship for ', blue, calendarId)
     log('comparing ' + author.rows[0]?.primary_author_id + '/' + verifiedUid)
 
-    if(!author.rows.length) {
+    if (!author.rows.length) {
       throw new NotFoundError('Calendar not found.')
     }
 
@@ -209,10 +209,20 @@ function listEvents({ verifiedUid, calendarId }) {
       throw new PermissionError('Permission denied for event list.')
     }
 
-    const events = await client.query(
-      'SELECT * FROM events WHERE calendar_id = $1::text;',
-      [calendarId]
-    )
+    let events
+    if (from && to) {
+      events = await client.query(
+        'SELECT * FROM events WHERE calendar_id = $1::text ' +
+          'AND start_time < $2::timestamptz ' +
+          'AND end_time > $3::timestamptz;',
+        [calendarId, to, from]
+      )
+    } else {
+      events = await client.query(
+        'SELECT * FROM events WHERE calendar_id = $1::text;',
+        [calendarId]
+      )
+    }
 
     return events.rows
   })

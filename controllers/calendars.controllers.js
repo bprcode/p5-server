@@ -116,8 +116,9 @@ const handleListEvents = async (req, res) => {
   const result = await listEvents({
     verifiedUid: req.verified.uid,
     calendarId: req.params.id,
+    from: req.query.from,
+    to: req.query.to,
   })
-
   res.json(result)
 }
 
