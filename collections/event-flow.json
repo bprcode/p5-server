@@ -1014,12 +1014,12 @@
 	"variable": [
 		{
 			"key": "sample-userkey",
-			"value": "shredman1212@slice.dice",
+			"value": "Demo Account",
 			"type": "string"
 		},
 		{
 			"key": "sample-pass",
-			"value": "oozy123",
+			"value": "123",
 			"type": "string"
 		},
 		{

@@ -11,7 +11,7 @@ const usersRoutes = require('./routes/users.routes')
 const notesRoutes = require('./routes/notes.routes')
 const calendarsRoutes = require('./routes/calendars.routes')
 const { SpecificError } = require('./shared/error-types')
-const { delay} = require('./shared/shared')
+const { delay } = require('./shared/shared')
 
 app
   .disable('x-powered-by')
@@ -19,24 +19,27 @@ app
   .use(express.text())
   .use(cookieParser())
 
-  .use([delay, (req, res, next) => {
-    // For development server only:
-    if (process.env.NODE_ENV === 'development') {
-      res.set({
-        'access-control-allow-origin': process.env.ACAO,
-        'access-control-allow-credentials': 'true',
-        'access-control-allow-headers': 'content-type',
-        'access-control-allow-methods': 'POST, PUT, GET, OPTIONS, DELETE',
-      })
+  .use([
+    delay,
+    (req, res, next) => {
+      // For development server only:
+      if (process.env.NODE_ENV === 'development') {
+        res.set({
+          'access-control-allow-origin': process.env.ACAO,
+          'access-control-allow-credentials': 'true',
+          'access-control-allow-headers': 'content-type',
+          'access-control-allow-methods': 'POST, PUT, GET, OPTIONS, DELETE',
+        })
 
-      if (req.method === 'OPTIONS') {
-        log('Serving options request...', blue)
-        return res.send()
+        if (req.method === 'OPTIONS') {
+          log('Serving options request...', blue)
+          return res.send()
+        }
       }
-    }
 
-    next()
-  }])
+      next()
+    },
+  ])
 
   // PUBLIC ROUTES ____________________________________________________________
 
@@ -57,7 +60,7 @@ app
 
   .use('/timeout', (req, res) => {})
   .use('/coinflip', (req, res) => {
-    if(Math.random() > 0.5) res.send('heads')
+    if (Math.random() > 0.5) res.send('heads')
   })
 
   .use(

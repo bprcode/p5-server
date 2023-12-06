@@ -199,7 +199,12 @@ function listEvents({ verifiedUid, calendarId }) {
     )
 
     log('checking event list authorship for ', blue, calendarId)
-    log('comparing ' + author.rows[0].primary_author_id + '/' + verifiedUid)
+    log('comparing ' + author.rows[0]?.primary_author_id + '/' + verifiedUid)
+
+    if(!author.rows.length) {
+      throw new NotFoundError('Calendar not found.')
+    }
+
     if (verifiedUid !== author.rows[0].primary_author_id) {
       throw new PermissionError('Permission denied for event list.')
     }
