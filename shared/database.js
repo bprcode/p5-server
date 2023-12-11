@@ -373,31 +373,49 @@ async function deleteEvent({ eventId, verifiedUid, etag }) {
 }
 
 async function updateEvent({ eventId, verifiedUid, etag, updates }) {
-  const result = await pool.query(
-    'UPDATE events SET summary = $1::text, ' +
-      'description = $2::text, ' +
-      'start_time = $3::timestamptz, ' +
-      'end_time = $4::timestamptz, ' +
-      'color_id = $5::text ' +
-      'FROM calendars WHERE events.calendar_id = calendars.calendar_id ' +
-      'AND primary_author_id = $6::text ' +
-      'AND events.etag = $7::text ' +
-      'AND event_id = $8::text ' +
-      'RETURNING events.summary, events.description, events.start_time, ' +
-      'events.end_time, events.color_id, events.etag',
-    [
-      updates.summary,
-      updates.description,
-      updates.start_time,
-      updates.end_time,
-      updates.color_id,
-      verifiedUid,
-      etag,
-      eventId,
-    ]
-  )
+  return transact(async client => {
+    const result = await client.query(
+      'UPDATE events SET summary = $1::text, ' +
+        'description = $2::text, ' +
+        'start_time = $3::timestamptz, ' +
+        'end_time = $4::timestamptz, ' +
+        'color_id = $5::text ' +
+        'FROM calendars WHERE events.calendar_id = calendars.calendar_id ' +
+        'AND primary_author_id = $6::text ' +
+        'AND events.etag = $7::text ' +
+        'AND event_id = $8::text ' +
+        'RETURNING events.summary, events.description, events.start_time, ' +
+        'events.end_time, events.color_id, events.etag',
+      [
+        updates.summary,
+        updates.description,
+        updates.start_time,
+        updates.end_time,
+        updates.color_id,
+        verifiedUid,
+        etag,
+        eventId,
+      ]
+    )
 
-  return result.rows
+    if (result.rows.length) {
+      return result.rows
+    }
+    
+    const match = await client.query(
+      'SELECT true FROM events JOIN calendars USING (calendar_id) '+
+      'WHERE event_id = $1::text AND primary_author_id = $2::text',
+      [eventId, verifiedUid]
+    )
+
+    // author/calendar matched; must have been the etag:
+    if (match.rows.length) {
+      throw new ConflictError('etag mismatch.')
+    }
+
+    // Record does not exist, or author does not match:
+    throw new NotFoundError('No resource matched request.')
+  })
 }
 
 function addCalendar({ key, verifiedUid, summary }) {
