@@ -645,8 +645,8 @@
 						"exec": [
 							"const json = pm.response.json()\r",
 							"pm.test(\"Shouldn't modify another's event.\", function () {\r",
-							"    pm.response.to.have.status(403);\r",
-							"    pm.expect(json).to.include({error: 'No records matched permissions.'})\r",
+							"    pm.response.to.have.status(404);\r",
+							"    pm.expect(json).to.include({error: 'No resource matched request.'})\r",
 							"});"
 						],
 						"type": "text/javascript"
@@ -688,6 +688,64 @@
 						{
 							"key": "eventId",
 							"value": "ev1"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Shouldn't update with wrong etag",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"const json = pm.response.json()\r",
+							"pm.test(\"Shouldn't allow wrong etag.\", function () {\r",
+							"    pm.response.to.have.status(409);\r",
+							"    pm.expect(json).to.include({error: 'etag mismatch.'})\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "PUT",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"etag\": \"bunk value\",\r\n    \"start_time\": \"{{start-time}}\",\r\n    \"end_time\": \"{{end-time}}\",\r\n    \"summary\": \"Changed summary\",\r\n    \"description\": \"Changed description\",\r\n    \"color_id\": \"#0f0\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{domain}}/calendars/events/:eventId",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"calendars",
+						"events",
+						":eventId"
+					],
+					"variable": [
+						{
+							"key": "eventId",
+							"value": "{{current-event}}"
 						}
 					]
 				}
@@ -770,8 +828,8 @@
 						"exec": [
 							"const json = pm.response.json()\r",
 							"pm.test(\"Shouldn't delete another's event\", function () {\r",
-							"    pm.response.to.have.status(200);\r",
-							"    pm.expect(json).to.be.an('array').with.lengthOf(0)\r",
+							"    pm.response.to.have.status(404);\r",
+							"    pm.expect(json).to.include({error: 'No resource matched request.'})\r",
 							"});"
 						],
 						"type": "text/javascript"
@@ -828,8 +886,8 @@
 						"exec": [
 							"const json = pm.response.json()\r",
 							"pm.test(\"Shouldn't delete with wrong etag\", function () {\r",
-							"    pm.response.to.have.status(200);\r",
-							"    pm.expect(json).to.be.an('array').with.lengthOf(0)\r",
+							"    pm.response.to.have.status(409);\r",
+							"    pm.expect(json).to.include({error: 'etag mismatch.'})\r",
 							"});"
 						],
 						"type": "text/javascript"

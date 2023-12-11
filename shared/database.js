@@ -359,17 +359,37 @@ function addEventIdempotent({ key, verifiedUid, calendarId, event }) {
 }
 
 async function deleteEvent({ eventId, verifiedUid, etag }) {
-  const result = await pool.query(
-    'DELETE FROM events USING calendars WHERE ' +
-      'events.calendar_id = calendars.calendar_id and ' +
-      'primary_author_id = $1::text and ' +
-      'event_id = $2::text and ' +
-      'events.etag = $3::text ' +
-      'RETURNING events.event_id, events.etag, events.summary, ' +
-      'events.description, events.start_time, events.end_time, events.color_id',
-    [verifiedUid, eventId, etag]
-  )
-  return result.rows
+  return transact(async client => {
+    const result = await client.query(
+      'DELETE FROM events USING calendars WHERE ' +
+        'events.calendar_id = calendars.calendar_id and ' +
+        'primary_author_id = $1::text and ' +
+        'event_id = $2::text and ' +
+        'events.etag = $3::text ' +
+        'RETURNING events.event_id, events.etag, events.summary, ' +
+        'events.description, events.start_time, events.end_time, events.color_id',
+      [verifiedUid, eventId, etag]
+    )
+
+    if (result.rows.length) {
+      return result.rows
+    }
+
+    // If the request failed, find out why.
+    const match = await client.query(
+      'SELECT true FROM events JOIN calendars USING (calendar_id) ' +
+        'WHERE event_id = $1::text AND primary_author_id = $2::text',
+      [eventId, verifiedUid]
+    )
+
+    // author/calendar matched; must have been the etag:
+    if (match.rows.length) {
+      throw new ConflictError('etag mismatch.')
+    }
+
+    // Record does not exist, or author does not match:
+    throw new NotFoundError('No resource matched request.')
+  })
 }
 
 async function updateEvent({ eventId, verifiedUid, etag, updates }) {
@@ -401,10 +421,11 @@ async function updateEvent({ eventId, verifiedUid, etag, updates }) {
     if (result.rows.length) {
       return result.rows
     }
-    
+
+    // If the request failed, find out why.
     const match = await client.query(
-      'SELECT true FROM events JOIN calendars USING (calendar_id) '+
-      'WHERE event_id = $1::text AND primary_author_id = $2::text',
+      'SELECT true FROM events JOIN calendars USING (calendar_id) ' +
+        'WHERE event_id = $1::text AND primary_author_id = $2::text',
       [eventId, verifiedUid]
     )
 
