@@ -88,7 +88,7 @@ register.post = [
     log('Attempting to create or use login: ', pink, email)
 
     // Attempt to register an account. Discard the result.
-    await transactRegistration(req.body).catch(debug=>{console.log(debug)})
+    await transactRegistration(req.body).catch(() => {})
 
     // Regardless of success, try to log in using the provided credentials:
     const outcome = await requestToken(email, password)
