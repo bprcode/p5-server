@@ -22,7 +22,6 @@ app
   .use([
     delay,
     (req, res, next) => {
-      // For development server only:
       if (process.env.NODE_ENV === 'development') {
         res.set({
           'access-control-allow-origin': process.env.ACAO,
@@ -49,28 +48,20 @@ app
 
   // Use logging on subsequent routes:
   .use('*', (req, res, next) => {
-    log(
-      new Date().toLocaleTimeString(),
-      ` ${req.method}`,
-      yellow,
-      ` ${req.originalUrl}`
-    )
+    if (process.env.NODE_ENV === 'development') {
+      log(
+        new Date().toLocaleTimeString(),
+        ` ${req.method}`,
+        yellow,
+        ` ${req.originalUrl}`
+      )
+    }
     next()
   })
 
   .use('/timeout', (req, res) => {})
-  .use('/coinflip', (req, res) => {
-    if (Math.random() > 0.5) res.send('heads')
-  })
 
-  .use(
-    express.static(
-      path.join(
-        'static',
-        process.env.NODE_ENV === 'production' ? 'production' : 'development'
-      )
-    )
-  )
+  .use(express.static(path.join('static', 'public')))
 
   .use(indexRoutes)
   .use('/users', usersRoutes)
@@ -82,11 +73,11 @@ app
   .get('*', (req, res) => {
     if (/\/[^.]*$/.test(req.url)) {
       log('Rerouting request to index: ', req.originalUrl, green)
-      return res.sendFile('production/index.html', { root: 'static' });
+      return res.sendFile('public/index.html', { root: 'static' })
     }
 
     log('Resource not found: ', req.originalUrl, pink)
-    res.status(404).sendFile('404.html', { root: 'static' })
+    res.status(404).sendFile('public/404.html', { root: 'static' })
   })
 
   .use((err, req, res, next) => {
