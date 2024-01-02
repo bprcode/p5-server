@@ -40,8 +40,6 @@ app
     },
   ])
 
-  // PUBLIC ROUTES ____________________________________________________________
-
   .get('/hi', (req, res) => {
     res.send()
   })
@@ -63,13 +61,21 @@ app
 
   .use(express.static(path.join('static', 'public')))
 
+// API ROUTES _______________________________________________________________
+const v1 = express.Router()
+v1
+  .get('/hi', (req, res) => {
+    res.send()
+  })
   .use(indexRoutes)
   .use('/users', usersRoutes)
   .use('/notes', notesRoutes)
   .use('/calendars', calendarsRoutes)
 
-  // ERROR HANDLERS ___________________________________________________________
+app.use('/api/v1', v1)
 
+// ERROR HANDLERS ___________________________________________________________
+app
   .get('*', (req, res) => {
     if (/\/[^.]*$/.test(req.url)) {
       log('Rerouting request to index: ', req.originalUrl, green)
