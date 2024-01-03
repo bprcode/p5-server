@@ -15,7 +15,6 @@ async function transact(callback) {
   const client = await pool.connect()
   try {
     await client.query('BEGIN')
-    log('transaction begun', green)
 
     return await callback(client)
   } catch (e) {
@@ -25,7 +24,6 @@ async function transact(callback) {
   } finally {
     await client.query('COMMIT')
     client.release()
-    log('transaction released', blue)
   }
 }
 
