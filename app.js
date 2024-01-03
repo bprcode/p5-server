@@ -77,13 +77,8 @@ app.use('/api/v1', v1)
 // ERROR HANDLERS ___________________________________________________________
 app
   .get('*', (req, res) => {
-    if (/\/[^.]*$/.test(req.url)) {
       log('Rerouting request to index: ', req.originalUrl, green)
       return res.sendFile('public/index.html', { root: 'static' })
-    }
-
-    log('Resource not found: ', req.originalUrl, pink)
-    res.status(404).sendFile('public/404.html', { root: 'static' })
   })
 
   .use((err, req, res, next) => {
