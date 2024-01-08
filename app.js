@@ -13,6 +13,12 @@ const calendarsRoutes = require('./routes/calendars.routes')
 const { SpecificError } = require('./shared/error-types')
 const { delay } = require('./shared/shared')
 
+function devLog(...args) {
+  if (process.env.NODE_ENV === 'development') {
+    log(...args)
+  }
+}
+
 app
   .disable('x-powered-by')
   .use(express.json())
@@ -46,14 +52,12 @@ app
 
   // Use logging on subsequent routes:
   .use('*', (req, res, next) => {
-    if (process.env.NODE_ENV === 'development') {
-      log(
-        new Date().toLocaleTimeString(),
-        ` ${req.method}`,
-        yellow,
-        ` ${req.originalUrl}`
-      )
-    }
+    devLog(
+      new Date().toLocaleTimeString(),
+      ` ${req.method}`,
+      yellow,
+      ` ${req.originalUrl}`
+    )
     next()
   })
 
@@ -63,10 +67,9 @@ app
 
 // API ROUTES _______________________________________________________________
 const v1 = express.Router()
-v1
-  .get('/hi', (req, res) => {
-    res.send()
-  })
+v1.get('/hi', (req, res) => {
+  res.send()
+})
   .use(indexRoutes)
   .use('/users', usersRoutes)
   .use('/notes', notesRoutes)
@@ -77,13 +80,13 @@ app.use('/api/v1', v1)
 // ERROR HANDLERS ___________________________________________________________
 app
   .get('*', (req, res) => {
-      log('Rerouting request to index: ', req.originalUrl, green)
-      return res.sendFile('public/index.html', { root: 'static' })
+    devLog('Rerouting request to index: ', req.originalUrl, green)
+    return res.sendFile('public/index.html', { root: 'static' })
   })
 
   .use((err, req, res, next) => {
     if (err instanceof SpecificError) {
-      log('Handling specific error: ', err.name, blue, ' - ' + err.message)
+      devLog('Handling specific error: ', err.name, blue, ' - ' + err.message)
       return res.status(err.code).json({ error: err.message })
     }
 

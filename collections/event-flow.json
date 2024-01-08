@@ -588,6 +588,180 @@
 			"response": []
 		},
 		{
+			"name": "Shouldn't accept non-array batch updates",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Shouldn't accept non-array batch updates\", function () {\r",
+							"    const json = pm.response.json()\r",
+							"    pm.response.to.have.status(400);\r",
+							"    pm.expect(json).to.include({error: \"Array expected for batch updates.\"})\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"foo\": \"bar\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{domain}}/calendars/{{current-calendar}}/events:batchUpdate",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"calendars",
+						"{{current-calendar}}",
+						"events:batchUpdate"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Test batched actions",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"pm.collectionVariables.set('idem-key', pm.collectionVariables.replaceIn('{{$randomInt}}{{$randomInt}}'))\r",
+							"\r",
+							"const startTime = new Date(Date.now() - Math.random() * 1000 * 60 * 10)\r",
+							"const endTime = new Date(Date.now() + Math.random() * 1000 * 60 * 10)\r",
+							"\r",
+							"pm.collectionVariables.set('start-time', startTime.toISOString())\r",
+							"pm.collectionVariables.set('end-time', endTime.toISOString())"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "[\r\n    {\r\n        \"action\": \"POST\",\r\n        \"body\": {\r\n            \"key\": \"{{idem-key}}\",\r\n            \"start_time\": \"{{start-time}}\",\r\n            \"end_time\": \"{{end-time}}\",\r\n            \"summary\": \"{{$randomCatchPhrase}}\",\r\n            \"description\": \"{{$randomLoremSentence}}\"\r\n        }\r\n    },\r\n    {\r\n        \"action\": \"POST\",\r\n        \"body\": {\r\n            \"key\": \"{{idem-key}}\",\r\n            \"start_time\": \"{{start-time}}\",\r\n            \"end_time\": \"{{end-time}}\",\r\n            \"summary\": \"Mock summary\",\r\n            \"description\": \"Mock description\"\r\n        }\r\n    },\r\n    {\r\n        \"action\": \"POST\",\r\n        \"body\": {\r\n            \"start_time\": \"{{start-time}}\",\r\n            \"end_time\": \"{{end-time}}\",\r\n            \"summary\": \"Mock summary\",\r\n            \"description\": \"Mock description\"\r\n        }\r\n    },\r\n    {\r\n        \"action\": \"PUT\",\r\n        \"event_id\": \"123\",\r\n        \"body\": {\r\n            \"etag\": \"{{event-etag}}\",\r\n            \"start_time\": \"{{start-time}}\",\r\n            \"end_time\": \"{{end-time}}\",\r\n            \"summary\": \"Bad ID, won't change summary\",\r\n            \"description\": \"Bad ID, won't change description\",\r\n            \"color_id\": \"#0f0\"\r\n        }\r\n    },\r\n    {\r\n        \"action\": \"PUT\",\r\n        \"event_id\": \"{{current-event}}\",\r\n        \"body\": {\r\n            \"etag\": \"{{event-etag}}\",\r\n            \"start_time\": \"{{start-time}}\",\r\n            \"end_time\": \"{{end-time}}\",\r\n            \"summary\": \"Batch-changed summary\",\r\n            \"description\": \"Batch-changed description\",\r\n            \"color_id\": \"#f0f\"\r\n        }\r\n    },\r\n    {\r\n        \"action\": \"DELETE\",\r\n        \"body\": {}\r\n    }\r\n]",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{domain}}/calendars/{{current-calendar}}/events:batchUpdate",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"calendars",
+						"{{current-calendar}}",
+						"events:batchUpdate"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "(#2) Create event in own calendar",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"const json = pm.response.json()\r",
+							"pm.collectionVariables.set('event-etag', json.etag)\r",
+							"pm.collectionVariables.set('current-event', json.event_id)\r",
+							"\r",
+							"pm.test(\"Create event in own calendar\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"    pm.expect(json).to.include.keys('event_id')\r",
+							"    pm.expect(json).to.include({start_time: pm.collectionVariables.get('start-time')})\r",
+							"    pm.expect(json).to.include({end_time: pm.collectionVariables.get('end-time')})\r",
+							"    pm.expect(json).to.include({calendar_id: pm.collectionVariables.get('current-calendar')})\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"pm.collectionVariables.set('idem-key', pm.collectionVariables.replaceIn('{{$randomInt}}{{$randomInt}}'))\r",
+							"\r",
+							"const startTime = new Date(Date.now() - Math.random() * 1000 * 60 * 10)\r",
+							"const endTime = new Date(Date.now() + Math.random() * 1000 * 60 * 10)\r",
+							"\r",
+							"pm.collectionVariables.set('start-time', startTime.toISOString())\r",
+							"pm.collectionVariables.set('end-time', endTime.toISOString())"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"key\": \"{{idem-key}}\",\r\n    \"start_time\": \"{{start-time}}\",\r\n    \"end_time\": \"{{end-time}}\",\r\n    \"summary\": \"{{$randomCatchPhrase}}\",\r\n    \"description\": \"{{$randomLoremSentence}}\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{domain}}/calendars/:calendarId/events",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"calendars",
+						":calendarId",
+						"events"
+					],
+					"variable": [
+						{
+							"key": "calendarId",
+							"value": "{{current-calendar}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
 			"name": "Shouldn't modify without etag",
 			"event": [
 				{
@@ -762,16 +936,15 @@
 							"const json = pm.response.json()\r",
 							"pm.test(\"Modify own event.\", function () {\r",
 							"    pm.response.to.have.status(200);\r",
-							"    pm.expect(json).to.be.an('array')\r",
-							"    pm.expect(json[0]).to.include({\r",
+							"    pm.expect(json).to.include({\r",
 							"        summary: 'Changed summary',\r",
 							"        description: 'Changed description',\r",
 							"        color_id: '#0f0',\r",
 							"        start_time: pm.collectionVariables.get('start-time'),\r",
 							"        end_time: pm.collectionVariables.get('end-time'),\r",
 							"    })\r",
-							"    pm.expect(json[0]).to.not.include({etag: pm.collectionVariables.get('event-etag')})\r",
-							"    pm.collectionVariables.set('event-etag', json[0].etag)\r",
+							"    pm.expect(json).to.not.include({etag: pm.collectionVariables.get('event-etag')})\r",
+							"    pm.collectionVariables.set('event-etag', json.etag)\r",
 							"});"
 						],
 						"type": "text/javascript"
@@ -945,8 +1118,7 @@
 							"const json = pm.response.json()\r",
 							"pm.test(\"Delete own event\", function () {\r",
 							"    pm.response.to.have.status(200);\r",
-							"    pm.expect(json).to.be.an('array').with.lengthOf(1)\r",
-							"    pm.expect(json[0]).to.include({\r",
+							"    pm.expect(json).to.include({\r",
 							"        event_id: pm.collectionVariables.get('current-event'),\r",
 							"        etag: pm.collectionVariables.get('event-etag'),\r",
 							"        start_time: pm.collectionVariables.get('start-time'),\r",

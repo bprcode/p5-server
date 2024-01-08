@@ -370,7 +370,7 @@ async function deleteEvent({ eventId, verifiedUid, etag }) {
     )
 
     if (result.rows.length) {
-      return result.rows
+      return result.rows[0]
     }
 
     // If the request failed, find out why.
@@ -417,7 +417,7 @@ async function updateEvent({ eventId, verifiedUid, etag, updates }) {
     )
 
     if (result.rows.length) {
-      return result.rows
+      return result.rows[0]
     }
 
     // If the request failed, find out why.

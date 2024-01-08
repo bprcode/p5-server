@@ -83,6 +83,7 @@ const handleUpdateCalendar = async (req, res) => {
 calendars.id.put = [handleUpdateCalendar]
 
 const handleCreateEvent = async (req, res) => {
+  log('handling create', blue)
   // Authorization:
   // Bearer uid matches primary_author_id of calendar
   // handled in transaction
@@ -111,7 +112,7 @@ const handleCreateEvent = async (req, res) => {
 calendars.id.events.post = [creationMaintenance, handleCreateEvent]
 
 const handleListEvents = async (req, res) => {
-  log('from=',yellow, req.query.from, ' to=', yellow, req.query.to)
+  log('from=', yellow, req.query.from, ' to=', yellow, req.query.to)
   // Authorization:
   // bearer uid matches primary_author_id of calendar
   const result = await listEvents({
@@ -126,6 +127,7 @@ const handleListEvents = async (req, res) => {
 calendars.id.events.get = [handleListEvents]
 
 const handleUpdateEvent = async (req, res) => {
+  log('handling update', blue)
   // Authorization:
   // bearer uid matches primary_author_id of calendar corresponding to event
   // Handled in query.
@@ -156,16 +158,13 @@ const handleUpdateEvent = async (req, res) => {
     },
   })
 
-  if (!result.length) {
-    throw new PermissionError('No records matched permissions.')
-  }
-
   res.json(result)
 }
 
 calendars.events.id.put = [handleUpdateEvent]
 
 const handleDeleteEvent = async (req, res) => {
+  log('handling delete', blue)
   // Authorization:
   // bearer uid matches primary author of calendar referenced by this event
   // Handled in query.
@@ -183,5 +182,63 @@ const handleDeleteEvent = async (req, res) => {
 }
 
 calendars.events.id.delete = [handleDeleteEvent]
+
+// Invoke a request handler, turning .json responses into promise resolutions
+// and wrapping errors into error objects.
+const invokeHandler = handler => (req, res) => {
+  return new Promise(resolve => {
+    const intercept = { json: json => resolve(json) }
+    handler(req, { ...res, ...intercept }).catch(e => {
+      resolve({ error: e.message })
+    })
+  })
+}
+
+// Dispatch an array of batched updates to their respective handlers.
+const handleBatchUpdate = async (req, res) => {
+  log('req.params was:', req.params)
+  const results = []
+  const maxActions = 50
+  if (!Array.isArray(req.body)) {
+    throw new RequestError('Array expected for batch updates.')
+  }
+
+  if (req.body.length > maxActions) {
+    throw new RequestError(`Batch actions exceeded max length (${maxActions})`)
+  }
+
+  log('handling batch update', blue)
+
+  for (const r of req.body) {
+    const subrequest = { ...req, body: r.body }
+    let result
+
+    log('handling subrequest:', blue, subrequest.body)
+
+    switch (r.action) {
+      case 'POST':
+        log('handling POST', yellow)
+        result = await invokeHandler(handleCreateEvent)(subrequest, res)
+        break
+      case 'PUT':
+        log(`handling PUT to ${r.event_id}`, yellow)
+        subrequest.params.id = r.event_id
+        result = await invokeHandler(handleUpdateEvent)(subrequest, res)
+        break
+      case 'DELETE':
+        log(`handling DELETE to ${r.event_id}`, yellow)
+        subrequest.params.id = r.event_id
+        break
+      default:
+        throw new RequestError(`Batch action not supported: ${r.action}`)
+    }
+
+    results.push(result)
+  }
+
+  res.json(results)
+}
+
+calendars.id.events.batchUpdate = [handleBatchUpdate]
 
 module.exports = { calendars }

@@ -13,7 +13,7 @@ if (process.env.NODE_ENV === 'development') {
     )
     emulateLag = () =>
       new Promise(ok => {
-        const delay = 500 + 2000 * Math.random()
+        const delay = 500 + 3000 * Math.random()
         const dc = Math.random()
         const waitId = Math.random().toFixed(3) * 1000
 
