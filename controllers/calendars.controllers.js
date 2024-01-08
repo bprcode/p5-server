@@ -83,7 +83,6 @@ const handleUpdateCalendar = async (req, res) => {
 calendars.id.put = [handleUpdateCalendar]
 
 const handleCreateEvent = async (req, res) => {
-  log('handling create', blue)
   // Authorization:
   // Bearer uid matches primary_author_id of calendar
   // handled in transaction
@@ -127,7 +126,6 @@ const handleListEvents = async (req, res) => {
 calendars.id.events.get = [handleListEvents]
 
 const handleUpdateEvent = async (req, res) => {
-  log('handling update', blue)
   // Authorization:
   // bearer uid matches primary_author_id of calendar corresponding to event
   // Handled in query.
@@ -164,7 +162,6 @@ const handleUpdateEvent = async (req, res) => {
 calendars.events.id.put = [handleUpdateEvent]
 
 const handleDeleteEvent = async (req, res) => {
-  log('handling delete', blue)
   // Authorization:
   // bearer uid matches primary author of calendar referenced by this event
   // Handled in query.
@@ -217,16 +214,13 @@ const handleBatchUpdate = async (req, res) => {
 
     switch (r.action) {
       case 'POST':
-        log('handling POST', yellow)
         result = await invokeHandler(handleCreateEvent)(subrequest, res)
         break
       case 'PUT':
-        log(`handling PUT to ${r.event_id}`, yellow)
         subrequest.params.id = r.event_id
         result = await invokeHandler(handleUpdateEvent)(subrequest, res)
         break
       case 'DELETE':
-        log(`handling DELETE to ${r.event_id}`, yellow)
         subrequest.params.id = r.event_id
         result = await invokeHandler(handleDeleteEvent)(subrequest, res)
         break
