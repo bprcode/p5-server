@@ -211,7 +211,7 @@ const handleBatchUpdate = async (req, res) => {
 
   for (const r of req.body) {
     const subrequest = { ...req, body: r.body }
-    let result
+    let result = null
 
     log('handling subrequest:', blue, subrequest.body)
 
@@ -228,6 +228,7 @@ const handleBatchUpdate = async (req, res) => {
       case 'DELETE':
         log(`handling DELETE to ${r.event_id}`, yellow)
         subrequest.params.id = r.event_id
+        result = await invokeHandler(handleDeleteEvent)(subrequest, res)
         break
       default:
         throw new RequestError(`Batch action not supported: ${r.action}`)
