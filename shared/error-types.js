@@ -35,9 +35,10 @@ class ValidationError extends SpecificError {
 }
 
 class ConflictError extends SpecificError {
-  constructor(message) {
+  constructor(message, conflict) {
     super(message)
     this.code = 409
+    this.conflict = conflict
   }
 }
 

@@ -87,7 +87,10 @@ app
   .use((err, req, res, next) => {
     if (err instanceof SpecificError) {
       devLog('Handling specific error: ', err.name, blue, ' - ' + err.message)
-      return res.status(err.code).json({ error: err.message })
+      return res.status(err.code).json({
+        error: err.message,
+        conflict: err.conflict,
+      })
     }
 
     log('Unrecognized error encountered: ', pink, err.message)

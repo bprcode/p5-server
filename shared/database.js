@@ -429,7 +429,15 @@ async function updateEvent({ eventId, verifiedUid, etag, updates }) {
 
     // author/calendar matched; must have been the etag:
     if (match.rows.length) {
-      throw new ConflictError('etag mismatch.')
+      // Return the current state of the record to help resolve the conflict:
+      const conflict = await client.query(
+        'SELECT summary, description, start_time, end_time, color_id, etag ' +
+          'FROM events WHERE event_id = $1::text',
+        [eventId]
+      )
+      log('returning conflict:', conflict.rows[0])
+
+      throw new ConflictError('etag mismatch.', conflict.rows[0])
     }
 
     // Record does not exist, or author does not match:

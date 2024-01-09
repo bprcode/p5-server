@@ -186,8 +186,13 @@ const invokeHandler = handler => (req, res) => {
   return new Promise(resolve => {
     const intercept = { json: json => resolve(json) }
     handler(req, { ...res, ...intercept }).catch(e => {
-      log('⚠️ Caught ', pink, e)
-      resolve({ error: e.message })
+      log('⚠️ Caught ', pink, e.message)
+      const notice = { error: e.message }
+      if (e.conflict) {
+        notice.conflict = e.conflict
+      }
+
+      resolve(notice)
     })
   })
 }
@@ -210,8 +215,8 @@ const handleBatchUpdate = async (req, res) => {
     let result = null
 
     log(
-      `handling subrequest (${r.action}`
-      +`${r.event_id ? ' ' + r.event_id :  ''}):`,
+      `handling subrequest (${r.action}` +
+        `${r.event_id ? ' ' + r.event_id : ''}):`,
       blue,
       subrequest.body
     )
