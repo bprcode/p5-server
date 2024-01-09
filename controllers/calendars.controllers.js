@@ -205,13 +205,16 @@ const handleBatchUpdate = async (req, res) => {
     throw new RequestError(`Batch actions exceeded max length (${maxActions})`)
   }
 
-  log('handling batch update', blue)
-
   for (const r of req.body) {
-    const subrequest = { ...req, params: {...req.params}, body: r.body }
+    const subrequest = { ...req, params: { ...req.params }, body: r.body }
     let result = null
 
-    log('handling subrequest:', blue, subrequest.body)
+    log(
+      `handling subrequest (${r.action}`
+      +`${r.event_id ? ' ' + r.event_id :  ''}):`,
+      blue,
+      subrequest.body
+    )
 
     switch (r.action) {
       case 'POST':
