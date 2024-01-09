@@ -532,7 +532,15 @@ function updateCalendar({ calendarId, verifiedUid, etag, summary }) {
 
     // author/calendar matched; must have been the etag:
     if (match.rows.length) {
-      throw new ConflictError('etag mismatch.')
+      // Return the current state of the record to help resolve the conflict:
+      const conflict = await client.query(
+        'SELECT summary, etag ' +
+          'FROM calendars WHERE calendar_id = $1::text',
+        [calendarId]
+      )
+      log('returning conflict:', conflict.rows[0])
+
+      throw new ConflictError('etag mismatch.', conflict.rows[0])
     }
 
     // Calendar does not exist, or author does not match:
