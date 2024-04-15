@@ -214,13 +214,6 @@ const handleBatchUpdate = async (req, res) => {
     const subrequest = { ...req, params: { ...req.params }, body: r.body }
     let result = null
 
-    log(
-      `handling subrequest (${r.action}` +
-        `${r.event_id ? ' ' + r.event_id : ''}):`,
-      blue,
-      subrequest.body
-    )
-
     switch (r.action) {
       case 'POST':
         result = await invokeHandler(handleCreateEvent)(subrequest, res)

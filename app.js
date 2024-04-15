@@ -50,6 +50,12 @@ app
     res.send()
   })
 
+  .get('/favicon.ico', (req, res) => {
+    res.sendFile('internal-favicon.svg', {
+      root: 'static/public',
+    })
+  })
+
   // Use logging on subsequent routes:
   .use('*', (req, res, next) => {
     devLog(
@@ -65,7 +71,7 @@ app
 
   .use(express.static(path.join('static', 'public')))
 
-// API ROUTES _______________________________________________________________
+// API ROUTES _________________________________________________________________
 const v1 = express.Router()
 v1.get('/hi', (req, res) => {
   res.send()
@@ -77,13 +83,19 @@ v1.get('/hi', (req, res) => {
 
 app.use('/api/v1', v1)
 
-// ERROR HANDLERS ___________________________________________________________
+// NAVIGATION HANDLERS ________________________________________________________
 app
+  .get('/welcome', (req, res) => {
+    devLog('Rerouting to welcome page: ', req.originalUrl, green)
+    return res.sendFile('public/welcome.html', { root: 'static' })
+  })
+
   .get('*', (req, res) => {
     devLog('Rerouting request to index: ', req.originalUrl, green)
     return res.sendFile('public/index.html', { root: 'static' })
   })
 
+  // ERROR HANDLERS ___________________________________________________________
   .use((err, req, res, next) => {
     if (err instanceof SpecificError) {
       devLog('Handling specific error: ', err.name, blue, ' - ' + err.message)
