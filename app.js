@@ -25,32 +25,12 @@ app
   .use(express.text())
   .use(cookieParser())
 
-  .use([
-    delay,
-    (req, res, next) => {
-      if (process.env.NODE_ENV === 'development') {
-        res.set({
-          'access-control-allow-origin': process.env.ACAO,
-          'access-control-allow-credentials': 'true',
-          'access-control-allow-headers': 'content-type',
-          'access-control-allow-methods': 'POST, PUT, GET, OPTIONS, DELETE',
-        })
-
-        if (req.method === 'OPTIONS') {
-          log('Serving options request...', blue)
-          return res.send()
-        }
-      }
-
-      next()
-    },
-  ])
-
   .get('/hi', (req, res) => {
     res.send()
   })
 
   .get('/favicon.ico', (req, res) => {
+    res.header('Cache-Control', 'max-age=604800')
     res.sendFile('internal-favicon.svg', {
       root: 'static/public',
     })
@@ -69,13 +49,44 @@ app
 
   .use('/timeout', (req, res) => {})
 
-  .use(express.static(path.join('static', 'public')))
+  .get('/', (req, res) => {
+    res.sendFile('public/index.html', {
+      root: 'static',
+      maxAge: 3600 * 1000,
+    })
+  })
+
+  .use(express.static(path.join('static', 'public'), {
+    maxAge: 604800 * 1000,
+  }))
+
+  .use([
+    delay,
+    (req, res, next) => {
+      if (process.env.NODE_ENV === 'development') {
+        res.set({
+          'access-control-allow-origin': process.env.ACAO,
+          'access-control-allow-credentials': 'true',
+          'access-control-allow-headers': 'content-type',
+          'access-control-allow-methods': 'POST, PUT, GET, OPTIONS, DELETE',
+        })
+
+        if (req.method === 'OPTIONS') {
+          return res.send()
+        }
+      }
+
+      next()
+    },
+  ])
 
 // API ROUTES _________________________________________________________________
 const v1 = express.Router()
-v1.get('/hi', (req, res) => {
-  res.send()
-})
+v1
+  .use('*', (req, res, next) => {
+    res.header('Cache-Control', 'no-cache, private')
+    next()
+  })
   .use(indexRoutes)
   .use('/users', usersRoutes)
   .use('/notes', notesRoutes)
@@ -95,7 +106,8 @@ app
     return res.sendFile('public/index.html', { root: 'static' })
   })
 
-  // ERROR HANDLERS ___________________________________________________________
+// ERROR HANDLERS _____________________________________________________________
+app
   .use((err, req, res, next) => {
     if (err instanceof SpecificError) {
       devLog('Handling specific error: ', err.name, blue, ' - ' + err.message)
@@ -111,6 +123,11 @@ app
   })
 
 const server = app.listen(process.env.PORT || 3000, () => {
+  if(process.env.NODE_ENV === 'development') {
+    log('🔷 ', 'Development Environment', blue)
+  } else {
+    log('🟡 ', 'Production Environment', yellow)
+  }
   const time = [new Date().toLocaleTimeString(), pink]
   log(...time, ' App listening on: ', server.address(), ' ' + moo())
 })
