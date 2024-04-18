@@ -65,10 +65,11 @@ app
     (req, res, next) => {
       if (process.env.NODE_ENV === 'development') {
         res.set({
-          'access-control-allow-origin': process.env.ACAO,
-          'access-control-allow-credentials': 'true',
-          'access-control-allow-headers': 'content-type',
-          'access-control-allow-methods': 'POST, PUT, GET, OPTIONS, DELETE',
+          'Access-Control-Allow-Origin': process.env.ACAO,
+          'Access-Control-Allow-Credentials': 'true',
+          'Access-Control-Allow-Headers': 'content-type',
+          'Access-Control-Allow-Methods': 'POST, PUT, GET, OPTIONS, DELETE',
+          'Access-Control-Max-Age': '86400',
         })
 
         if (req.method === 'OPTIONS') {
