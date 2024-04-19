@@ -69,7 +69,7 @@ app
           'Access-Control-Allow-Credentials': 'true',
           'Access-Control-Allow-Headers': 'content-type',
           'Access-Control-Allow-Methods': 'POST, PUT, GET, OPTIONS, DELETE',
-          'Access-Control-Max-Age': '86400',
+          'Access-Control-Max-Age': '3600',
         })
 
         if (req.method === 'OPTIONS') {
@@ -125,9 +125,9 @@ app
 
 const server = app.listen(process.env.PORT || 3000, () => {
   if(process.env.NODE_ENV === 'development') {
-    log('🔷 ', 'Development Environment', blue)
+    log('\n\n\n🔷 ', 'Development Environment', blue)
   } else {
-    log('🟡 ', 'Production Environment', yellow)
+    log('\n\n\n🟡 ', 'Production Environment', yellow)
   }
   const time = [new Date().toLocaleTimeString(), pink]
   log(...time, ' App listening on: ', server.address(), ' ' + moo())
