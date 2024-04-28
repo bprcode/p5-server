@@ -297,9 +297,6 @@ async function addNoteIdempotent(key, uid, note) {
 }
 
 function addEventIdempotent({ key, verifiedUid, calendarId, event }) {
-  const logId = Math.random()
-  console.time(`Add event idempotent ${logId}`)
-
   return transact(async client => {
     // Check that the bearer has permission to add to this calendar:
     const calendar = await client.query(
@@ -352,8 +349,6 @@ function addEventIdempotent({ key, verifiedUid, calendarId, event }) {
     )
 
     return created
-  }).finally(() => {
-    console.timeEnd(`Add event idempotent ${logId}`)
   })
 }
 
@@ -535,8 +530,7 @@ function updateCalendar({ calendarId, verifiedUid, etag, summary }) {
     if (match.rows.length) {
       // Return the current state of the record to help resolve the conflict:
       const conflict = await client.query(
-        'SELECT summary, etag ' +
-          'FROM calendars WHERE calendar_id = $1::text',
+        'SELECT summary, etag ' + 'FROM calendars WHERE calendar_id = $1::text',
         [calendarId]
       )
       devLog('returning conflict:', conflict.rows[0])
