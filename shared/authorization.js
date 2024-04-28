@@ -2,7 +2,7 @@ require('@bprcode/handy')
 const jwt = require('jsonwebtoken')
 const { matchCredentials } = require('./database')
 const { PermissionError } = require('./error-types')
-const { devLog } = require('./shared')
+const { devLog } = require('./logging')
 
 const cookieSeconds = 60 * 10
 

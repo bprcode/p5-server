@@ -1,6 +1,6 @@
 const { identifyCredentials } = require('../shared/authorization')
 const { listNotes, addNoteIdempotent } = require('../shared/database')
-const { devLog } = require('../shared/shared')
+const { devLog } = require('../shared/logging')
 
 const notebook = {}
 

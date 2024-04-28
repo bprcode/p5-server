@@ -9,7 +9,7 @@ const {
   deleteRegistration,
 } = require('../shared/database')
 const { PermissionError, ConflictError } = require('../shared/error-types')
-const { devLog } = require('../shared/shared')
+const { devLog } = require('../shared/logging')
 
 const me = {}
 const login = {}

@@ -1,4 +1,5 @@
 const { deleteOldIdempotencies } = require('./database')
+const { devLog } = require('./logging')
 
 let emulateLag = async () => {}
 
@@ -47,10 +48,4 @@ async function creationMaintenance(req, res, next) {
   next()
 }
 
-function devLog(...args) {
-  if (process.env.NODE_ENV === 'development') {
-    return log(...args)
-  }
-}
-
-module.exports = { delay, creationMaintenance, devLog }
+module.exports = { delay, creationMaintenance }

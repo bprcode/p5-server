@@ -1,4 +1,5 @@
-const { creationMaintenance, devLog } = require('../shared/shared')
+const { creationMaintenance } = require('../shared/shared')
+const { devLog } = require('../shared/logging')
 const { identifyCredentials } = require('../shared/authorization')
 const {
   getCalendarList,

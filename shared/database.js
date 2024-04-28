@@ -7,7 +7,7 @@ const {
   RequestError,
   ConflictError,
 } = require('./error-types')
-const { devLog } = require('./shared')
+const { devLog } = require('./logging')
 
 const pool = new Pool()
 
