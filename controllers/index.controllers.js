@@ -9,6 +9,7 @@ const {
   deleteRegistration,
 } = require('../shared/database')
 const { PermissionError, ConflictError } = require('../shared/error-types')
+const { devLog } = require('../shared/shared')
 
 const me = {}
 const login = {}
@@ -18,14 +19,14 @@ const register = {}
 me.get = [
   (req, res, next) => {
     if (!req.cookies.token) {
-      log('User had no cookie; must login to proceed.')
+      devLog('User had no cookie; must login to proceed.')
       return res.status(400).json({ notice: 'Awaiting login.' })
     }
     next()
   },
   identifyCredentials,
   (req, res) => {
-    log('🙋‍♀️ identifying user')
+    devLog('🙋‍♀️ identifying user')
     res.json(req.verified)
   },
 ]
@@ -34,8 +35,12 @@ me.get = [
 login.post = [
   async (req, res) => {
     const { email, password } = req.body
-    log(new Date().toLocaleTimeString(), ' Received login post request', pink)
-    log('Attempting login as ', email)
+    devLog(
+      new Date().toLocaleTimeString(),
+      ' Received login post request',
+      pink
+    )
+    devLog('Attempting login as ', email)
     const outcome = await requestToken(email, password)
     if (outcome) {
       setTokenCookie(res, outcome.token)
@@ -54,7 +59,7 @@ login.post = [
 // Expire an identity token
 login.delete = [
   (req, res) => {
-    log('🧼 sending login-delete', pink)
+    devLog('🧼 sending login-delete', pink)
     return res
       .cookie('token', '', {
         httpOnly: true,
@@ -71,7 +76,7 @@ register.delete = [
   identifyCredentials,
   (req, res) => {
     // Authorization: <bearer> exists
-    log('Trying to delete registration: ', yellow, req.verified.uid)
+    devLog('Trying to delete registration: ', yellow, req.verified.uid)
     deleteRegistration(req.verified.uid)
       .then(() => res.send())
       .catch(e => {
@@ -85,7 +90,7 @@ register.delete = [
 register.post = [
   async (req, res) => {
     const { email, password } = req.body
-    log('Attempting to create or use login: ', pink, email)
+    devLog('Attempting to create or use login: ', pink, email)
 
     // Attempt to register an account. Discard the result.
     await transactRegistration(req.body).catch(() => {})
@@ -93,7 +98,7 @@ register.post = [
     // Regardless of success, try to log in using the provided credentials:
     const outcome = await requestToken(email, password)
     if (outcome) {
-      log('Successful creation or use: ', green, email)
+      devLog('Successful creation or use: ', green, email)
       setTokenCookie(res, outcome.token)
       return res.json({
         uid: outcome.uid,
@@ -103,7 +108,7 @@ register.post = [
       })
     }
 
-    log('Unable to use: ', pink, email)
+    devLog('Unable to use: ', pink, email)
     throw new ConflictError('email already in use.')
   },
 ]

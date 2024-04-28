@@ -4,10 +4,10 @@ let emulateLag = async () => {}
 
 if (process.env.NODE_ENV === 'development') {
   if (process.argv.includes('-nolag')) {
-    log('Disabling lag emulation.', pink)
+    devLog('Disabling lag emulation.', pink)
   } else {
-    log('In dev mode. Emulating lag.', pink)
-    log(
+    devLog('In dev mode. Emulating lag.', pink)
+    devLog(
       'Reminder: express-async-errors will pass control' +
         ' on middleware promise rejections!'
     )
@@ -17,7 +17,7 @@ if (process.env.NODE_ENV === 'development') {
         const dc = Math.random()
         const waitId = Math.random().toFixed(3) * 1000
 
-        log(`(${waitId}) Delaying... dc = ${dc.toFixed(3)}`, pink)
+        devLog(`(${waitId}) Delaying... dc = ${dc.toFixed(3)}`, pink)
         console.time(`(${waitId}) Delayed`)
 
         if (dc < 0.9) {
@@ -27,7 +27,7 @@ if (process.env.NODE_ENV === 'development') {
           }, delay)
         } else {
           console.timeEnd(`(${waitId}) Delayed`)
-          log('🪩 Simulating disconnect')
+          devLog('🪩 Simulating disconnect')
         }
       })
   }
@@ -47,4 +47,10 @@ async function creationMaintenance(req, res, next) {
   next()
 }
 
-module.exports = { delay, creationMaintenance }
+function devLog(...args) {
+  if (process.env.NODE_ENV === 'development') {
+    return log(...args)
+  }
+}
+
+module.exports = { delay, creationMaintenance, devLog }

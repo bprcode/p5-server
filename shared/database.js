@@ -7,6 +7,7 @@ const {
   RequestError,
   ConflictError,
 } = require('./error-types')
+const { devLog } = require('./shared')
 
 const pool = new Pool()
 
@@ -19,7 +20,7 @@ async function transact(callback) {
     return await callback(client)
   } catch (e) {
     await client.query('ROLLBACK')
-    log('transaction rollback', yellow)
+    devLog('transaction rollback', yellow)
     throw e
   } finally {
     await client.query('COMMIT')
@@ -46,12 +47,12 @@ async function matchCredentials(email, password) {
 }
 
 async function deleteRegistration(uid) {
-  log('handling delete request for uid=', yellow, uid)
+  devLog('handling delete request for uid=', yellow, uid)
   const result = await pool.query(
     'DELETE FROM logins WHERE uid = $1::text RETURNING uid',
     [uid]
   )
-  log('outcome=', yellow, result.rows[0])
+  devLog('outcome=', yellow, result.rows[0])
 
   return result.rows[0]
 }
@@ -64,7 +65,7 @@ function transactRegistration(candidate) {
     )
 
     if (previous.rows.length > 0) {
-      log(candidate.email, pink, ' already taken')
+      devLog(candidate.email, pink, ' already taken')
       throw new ConflictError('email already in use.')
     }
 
@@ -179,7 +180,7 @@ async function deleteNote({ noteId, authorId }) {
 }
 
 async function listNotes(author) {
-  log('getting note list for ', blue, author)
+  devLog('getting note list for ', blue, author)
   const result = await pool.query(
     'SELECT note_id, title, summary FROM notes WHERE author_id = $1::text ' +
       'ORDER BY created_at',
@@ -196,8 +197,8 @@ function listEvents({ verifiedUid, calendarId, from, to }) {
       [calendarId]
     )
 
-    log('checking event list authorship for ', blue, calendarId)
-    log('comparing ' + author.rows[0]?.primary_author_id + '/' + verifiedUid)
+    devLog('checking event list authorship for ', blue, calendarId)
+    devLog('comparing ' + author.rows[0]?.primary_author_id + '/' + verifiedUid)
 
     if (!author.rows.length) {
       throw new NotFoundError('Calendar not found.')
@@ -262,7 +263,7 @@ async function addNoteIdempotent(key, uid, note) {
     const previous = await checkIdempotency({ key, verifiedUid: uid, client })
 
     if (previous) {
-      log('already had note: ', key, uid)
+      devLog('already had note: ', key, uid)
       return previous.outcome
     }
 
@@ -286,7 +287,7 @@ async function addNoteIdempotent(key, uid, note) {
     return created
   } catch (e) {
     await client.query('ROLLBACK')
-    log('<< rolling back...', yellow)
+    devLog('<< rolling back...', yellow)
     throw e
   } finally {
     await client.query('COMMIT')
@@ -318,7 +319,7 @@ function addEventIdempotent({ key, verifiedUid, calendarId, event }) {
     const previous = await checkIdempotency({ key, verifiedUid, client })
 
     if (previous) {
-      log('already had event: ', key, verifiedUid)
+      devLog('already had event: ', key, verifiedUid)
       return previous.outcome
     }
 
@@ -435,7 +436,7 @@ async function updateEvent({ eventId, verifiedUid, etag, updates }) {
           'FROM events WHERE event_id = $1::text',
         [eventId]
       )
-      log('returning conflict:', conflict.rows[0])
+      devLog('returning conflict:', conflict.rows[0])
 
       throw new ConflictError('etag mismatch.', conflict.rows[0])
     }
@@ -451,7 +452,7 @@ function addCalendar({ key, verifiedUid, summary }) {
     const previous = await checkIdempotency({ key, verifiedUid, client })
 
     if (previous) {
-      log('already had entry: ', key, verifiedUid)
+      devLog('already had entry: ', key, verifiedUid)
       return previous.outcome
     }
 
@@ -538,7 +539,7 @@ function updateCalendar({ calendarId, verifiedUid, etag, summary }) {
           'FROM calendars WHERE calendar_id = $1::text',
         [calendarId]
       )
-      log('returning conflict:', conflict.rows[0])
+      devLog('returning conflict:', conflict.rows[0])
 
       throw new ConflictError('etag mismatch.', conflict.rows[0])
     }

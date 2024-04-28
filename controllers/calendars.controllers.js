@@ -1,4 +1,4 @@
-const { creationMaintenance } = require('../shared/shared')
+const { creationMaintenance, devLog } = require('../shared/shared')
 const { identifyCredentials } = require('../shared/authorization')
 const {
   getCalendarList,
@@ -21,7 +21,7 @@ const placeholder = tag => (req, res) =>
   res.status(418).send(tag + ' placeholder')
 
 const handleListCalendars = async (req, res) => {
-  log(`Retrieving catalog for ${req.verified.uid}`)
+  devLog(`Retrieving catalog for ${req.verified.uid}`)
   const result = await getCalendarList(req.verified.uid)
   res.json(result)
 }
@@ -111,7 +111,7 @@ const handleCreateEvent = async (req, res) => {
 calendars.id.events.post = [creationMaintenance, handleCreateEvent]
 
 const handleListEvents = async (req, res) => {
-  log('from=', yellow, req.query.from, ' to=', yellow, req.query.to)
+  devLog('from=', yellow, req.query.from, ' to=', yellow, req.query.to)
   // Authorization:
   // bearer uid matches primary_author_id of calendar
   const result = await listEvents({
@@ -186,7 +186,7 @@ const invokeHandler = handler => (req, res) => {
   return new Promise(resolve => {
     const intercept = { json: json => resolve(json) }
     handler(req, { ...res, ...intercept }).catch(e => {
-      log('⚠️ Caught ', pink, e.message)
+      devLog('⚠️ Caught ', pink, e.message)
       const notice = { error: e.message }
       if (e.conflict) {
         notice.conflict = e.conflict
@@ -199,7 +199,6 @@ const invokeHandler = handler => (req, res) => {
 
 // Dispatch an array of batched updates to their respective handlers.
 const handleBatchUpdate = async (req, res) => {
-  log('req.params was:', req.params)
   const results = []
   const maxActions = 50
   if (!Array.isArray(req.body)) {

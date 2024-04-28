@@ -2,6 +2,7 @@ require('@bprcode/handy')
 const jwt = require('jsonwebtoken')
 const { matchCredentials } = require('./database')
 const { PermissionError } = require('./error-types')
+const { devLog } = require('./shared')
 
 const cookieSeconds = 60 * 10
 
@@ -11,7 +12,7 @@ const cookieSeconds = 60 * 10
  */
 const identifyCredentials = async (req, res, next) => {
   if (!req.cookies.token) {
-    log('❔ No cookie.')
+    devLog('❔ No cookie.')
     throw new PermissionError('No identification provided.')
   }
 
@@ -27,7 +28,7 @@ const identifyCredentials = async (req, res, next) => {
       refreshCookie(res, req.verified)
     }
   } catch (e) {
-    log('❌ Verification failed: ', pink, e.message)
+    devLog('❌ Verification failed: ', pink, e.message)
 
     if (e.message === 'jwt expired') {
       throw new PermissionError('Token expired.')
@@ -49,14 +50,14 @@ function refreshCookie(res, verified) {
 
 // Return a bearer token if the password matches the stored hash
 const requestToken = async (email, password) => {
-  log('requesting token for ', email)
+  devLog('requesting token for ', email)
   const match = await matchCredentials(email, password)
 
   if (match) {
-    log('💚 match succeeded, returning signed token', green)
+    devLog('💚 match succeeded, returning signed token', green)
     return { ...match, token: signToken(match) }
   }
-  log('😡 match failed, returning false', pink)
+  devLog('😡 match failed, returning false', pink)
 
   return false
 }

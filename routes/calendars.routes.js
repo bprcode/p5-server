@@ -13,6 +13,5 @@ router
   .put('/events/:id', calendars.events.id.put)
   .delete('/events/:id', calendars.events.id.delete)
   .post('/:id/events[:]batchUpdate', calendars.id.events.batchUpdate)
-  
 
 module.exports = router

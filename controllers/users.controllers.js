@@ -1,15 +1,13 @@
 const { identifyCredentials } = require('../shared/authorization')
-const {
-  listNotes,
-  addNoteIdempotent,
-} = require('../shared/database')
+const { listNotes, addNoteIdempotent } = require('../shared/database')
+const { devLog } = require('../shared/shared')
 
 const notebook = {}
 
 const handleNotebookGet = (req, res) => {
   // Authorization: path-id = <bearer>
   if (req.verified.uid !== req.params.id) {
-    log('denied: ', blue, req.verified.uid, ' !== ', yellow, req.params.id)
+    devLog('denied: ', blue, req.verified.uid, ' !== ', yellow, req.params.id)
     return res.status(403).json({ error: 'Permission denied.' })
   }
   listNotes(req.params.id)

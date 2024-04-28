@@ -11,13 +11,7 @@ const usersRoutes = require('./routes/users.routes')
 const notesRoutes = require('./routes/notes.routes')
 const calendarsRoutes = require('./routes/calendars.routes')
 const { SpecificError } = require('./shared/error-types')
-const { delay } = require('./shared/shared')
-
-function devLog(...args) {
-  if (process.env.NODE_ENV === 'development') {
-    log(...args)
-  }
-}
+const { delay, devLog } = require('./shared/shared')
 
 app
   .disable('x-powered-by')
