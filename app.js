@@ -12,7 +12,8 @@ const notesRoutes = require('./routes/notes.routes')
 const calendarsRoutes = require('./routes/calendars.routes')
 const { SpecificError } = require('./shared/error-types')
 const { delay } = require('./shared/shared')
-const { devLog } = require('./shared/logging')
+const { devLog, renderLog } = require('./shared/logging')
+const { identifyCredentials } = require('./shared/authorization')
 
 app
   .disable('x-powered-by')
@@ -31,11 +32,21 @@ app
     })
   })
 
+  .get('/logs', [
+    identifyCredentials,
+    (req, res) => {
+    // Authorization: uid = ADMIN_UID
+    if(req.verified.uid === process.env.ADMIN_UID) {
+      return res.send(renderLog())
+    }
+    res.send('Credential mismatch.')
+  }])
+
   // Use logging on subsequent routes:
   .use('*', (req, res, next) => {
     devLog(
       new Date().toLocaleTimeString(),
-      ` ${req.method}`,
+      ` ${req.ip} ${req.protocol} ${req.method}`,
       yellow,
       ` ${req.originalUrl}`
     )
