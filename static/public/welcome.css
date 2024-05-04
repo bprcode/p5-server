@@ -249,14 +249,15 @@ section:not(.hourglass-section) {
   color: #FFA15D;
   border: 1px solid #FFA15D90;
   background-color: transparent;
-  line-height: 24px;
-  height: 30px;
   padding: calc(0.56rem - 1px) 0.5rem calc(0.56rem - 1px) 0.5rem;
 }
 
-.hourglass-icon {
-  transform: translate(0.2rem, 0.4ex);
-  width: 16px;
+.logo-svg {
+  position: absolute;
+  bottom: 0;
+  transform: translate(0.225rem, -0.9ex);
+  width: unset;
+  height: 2.0rem;
 }
 
 .headline-main {
@@ -371,23 +372,11 @@ section:not(.hourglass-section) {
   margin: 0 auto;
   padding-left: 0.5rem;
   padding-right: 0.75rem;
+  padding-top: 0.325rem;
 
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  height: 32px;
-}
-
-.logo-text {
-  letter-spacing: -0.01em;
-}
-
-.logo-text .first {
-  font-weight: 700;
-}
-
-.logo-text .second {
-  font-weight: 300;
 }
 
 .lazy {
@@ -466,9 +455,16 @@ footer svg {
     --h-padding: 1.75rem;
   }
 
-  .hourglass-icon {
-    transform: translate(0.225rem, 0.3ex);
+  .header-contain {
+    padding-top: 0.2rem;
+  }
+
+  .logo-svg {
+    position: absolute;
+    bottom: 0;
+    transform: translate(0.225rem, -0.6ex);
     width: unset;
+    height: 2.4rem;
   }
 
   .get-started {
