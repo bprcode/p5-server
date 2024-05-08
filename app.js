@@ -27,7 +27,7 @@ app
 
   .get('/favicon.ico', (req, res) => {
     res.header('Cache-Control', 'max-age=604800')
-    res.sendFile('internal-favicon.svg', {
+    res.sendFile('internal-favicon.ico', {
       root: 'static/public',
     })
   })
