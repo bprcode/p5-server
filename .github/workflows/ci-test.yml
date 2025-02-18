@@ -1,0 +1,75 @@
+name: Calendar backend API test
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  TEST_DATABASE_NAME: calendar_test_db
+
+jobs:
+  test-calendar-API:
+
+    # Run on Linux OS, as required for containers:
+    runs-on: ubuntu-latest
+
+    # Ensure limited resource usage:
+    timeout-minutes: 5
+
+    # Starting point image
+    container: node:22-bookworm-slim
+
+    # We will run a service within our job:
+    services:
+      # Label our database service container:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v4
+      - name: Install psql
+        run: |
+          apt update
+          apt install -y postgresql-client
+      - name: Load database
+        env:
+          PGPASSWORD: postgres
+        run: |
+          echo "create database $TEST_DATABASE_NAME" | psql -U postgres -h postgres
+          psql -U postgres -h postgres -d $TEST_DATABASE_NAME < ./schema/test-roles.sql
+          psql -U postgres -h postgres -d $TEST_DATABASE_NAME < ./schema/public-2-18-25.sql
+          psql -U postgres -h postgres -d $TEST_DATABASE_NAME < ./schema/login-test-values.sql
+
+      
+      - name: Install NPM packages
+        run: |
+          npm ci
+      - name: Start and test the server
+        # Test calendar API flows:
+        run: |
+          node app.js &
+          sleep 5
+          npm run test-registration
+          npm run test-catalog
+          npm run test-events
+        env:
+          # Use minimal permissions for server app with 'node' database user:
+          PGHOST: postgres
+          PGPORT: 5432
+          PGUSER: node
+          PGPASSWORD: demopassword
+          PGDATABASE: ${{ env.TEST_DATABASE_NAME }}
+          # Demo-only secret:
+          JWT_SECRET: mlG4MPdEzq3dz7Z2vtc1GLJ1htT+A4XqJhzKwW9I9pUzSIdJbNHpB91OMJ/9h/+CJID4OEiqnxpoN5jQkW1t6A==
+
+

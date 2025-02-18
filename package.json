@@ -1,6 +1,6 @@
 {
   "name": "token-server",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "Token-protected REST route server",
   "main": "app.js",
   "scripts": {
@@ -17,7 +17,7 @@
   "license": "UNLICENSED",
   "dependencies": {
     "@bprcode/handy": "^0.3.3",
-    "bcrypt": "^5.1.0",
+    "bcrypt": "^5.1.1",
     "cookie-parser": "^1.4.6",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
@@ -26,6 +26,7 @@
     "pg": "^8.11.2"
   },
   "devDependencies": {
+    "newman": "6.1.3",
     "nodemon": "^3.0.1"
   },
   "engines": {
